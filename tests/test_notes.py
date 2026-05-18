@@ -1,24 +1,13 @@
-import pytest
 from fastapi.testclient import TestClient
 
-from app import store
-from app.main import app
 
-client = TestClient(app)
-
-
-@pytest.fixture(autouse=True)
-def clean_store() -> None:
-    store.reset_store()
-
-
-def test_health() -> None:
+def test_health(client: TestClient) -> None:
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
 
-def test_notes_crud_flow() -> None:
+def test_notes_crud_flow(client: TestClient) -> None:
     assert client.get("/notes").json() == []
 
     create = client.post("/notes", json={"title": "Learn FastAPI", "body": "Step 1"})
@@ -43,12 +32,12 @@ def test_notes_crud_flow() -> None:
     assert missing.status_code == 404
 
 
-def test_get_missing_note_returns_404() -> None:
+def test_get_missing_note_returns_404(client: TestClient) -> None:
     response = client.get("/notes/999")
     assert response.status_code == 404
     assert response.json()["detail"] == "Note not found"
 
 
-def test_create_note_requires_title() -> None:
+def test_create_note_requires_title(client: TestClient) -> None:
     response = client.post("/notes", json={"body": "no title"})
     assert response.status_code == 422

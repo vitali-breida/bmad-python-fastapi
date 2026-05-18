@@ -1,54 +1,49 @@
-from threading import Lock
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
+from app.db_models import NoteRow
 from app.models import Note, NoteCreate, NoteUpdate
 
-_lock = Lock()
-_notes: dict[int, Note] = {}
-_next_id = 1
+
+def _to_note(row: NoteRow) -> Note:
+    return Note(id=row.id, title=row.title, body=row.body)
 
 
-def list_notes() -> list[Note]:
-    with _lock:
-        return sorted(_notes.values(), key=lambda note: note.id)
+def list_notes(db: Session) -> list[Note]:
+    rows = db.scalars(select(NoteRow).order_by(NoteRow.id)).all()
+    return [_to_note(row) for row in rows]
 
 
-def get_note(note_id: int) -> Note | None:
-    with _lock:
-        return _notes.get(note_id)
+def get_note(db: Session, note_id: int) -> Note | None:
+    row = db.get(NoteRow, note_id)
+    return _to_note(row) if row is not None else None
 
 
-def create_note(payload: NoteCreate) -> Note:
-    global _next_id
-    with _lock:
-        note = Note(id=_next_id, title=payload.title, body=payload.body)
-        _notes[_next_id] = note
-        _next_id += 1
-        return note
+def create_note(db: Session, payload: NoteCreate) -> Note:
+    row = NoteRow(title=payload.title, body=payload.body)
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return _to_note(row)
 
 
-def update_note(note_id: int, payload: NoteUpdate) -> Note | None:
-    with _lock:
-        existing = _notes.get(note_id)
-        if existing is None:
-            return None
-        data = existing.model_dump()
-        if payload.title is not None:
-            data["title"] = payload.title
-        if payload.body is not None:
-            data["body"] = payload.body
-        updated = Note(**data)
-        _notes[note_id] = updated
-        return updated
+def update_note(db: Session, note_id: int, payload: NoteUpdate) -> Note | None:
+    row = db.get(NoteRow, note_id)
+    if row is None:
+        return None
+    if payload.title is not None:
+        row.title = payload.title
+    if payload.body is not None:
+        row.body = payload.body
+    db.commit()
+    db.refresh(row)
+    return _to_note(row)
 
 
-def delete_note(note_id: int) -> bool:
-    with _lock:
-        return _notes.pop(note_id, None) is not None
-
-
-def reset_store() -> None:
-    """Clear in-memory state (used by tests)."""
-    global _next_id
-    with _lock:
-        _notes.clear()
-        _next_id = 1
+def delete_note(db: Session, note_id: int) -> bool:
+    row = db.get(NoteRow, note_id)
+    if row is None:
+        return False
+    db.delete(row)
+    db.commit()
+    return True
