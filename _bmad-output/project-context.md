@@ -6,12 +6,13 @@ sections_completed:
   - technology_stack
   - language_rules
   - framework_rules
+  - frontend_rules
   - testing_rules
   - quality_rules
   - workflow_rules
   - anti_patterns
 status: complete
-rule_count: 42
+rule_count: 58
 optimized_for_llm: true
 ---
 
@@ -32,7 +33,10 @@ _This file contains critical rules and patterns that AI agents must follow when 
 | ORM | SQLAlchemy 2.0 sync | Declarative `Mapped` in `app/db_models.py` |
 | Migrations | Alembic 1.18.x | Two-revision pattern (baseline + alter) |
 | DB | SQLite | Default `sqlite:///./notes.db`; override via `DATABASE_URL` |
-| Tests | pytest 8.x + httpx | In-memory DB via `dependency_overrides` |
+| Tests (API) | pytest 8.x + httpx | In-memory DB via `dependency_overrides` |
+| UI | React 19 + TypeScript 6 + Vite 8 | SPA in `frontend/` |
+| UI styling | Tailwind CSS 4 (`@tailwindcss/vite`) | Utility classes; `src/index.css` imports tailwind |
+| UI E2E | Playwright 1.60 | Smoke test in `frontend/e2e/`; dev server via `webServer` |
 
 `requirements.txt` uses version ranges; match installed `.venv` versions when pinning or documenting.
 
@@ -60,27 +64,43 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - New schema changes: **new Alembic revision**; do not merge baseline + alter into one revision (see ADR-002).
 - `alembic/env.py` must use `Base.metadata` from `app.db_models` and `DATABASE_URL` from `app.database`.
 
+### Frontend Rules
+
+- **Layout:** `frontend/src/` — `App.tsx` (state + handlers), `api/` (fetch + errors), `components/`, `types/`.
+- **API client:** `fetch("/notes")` only; Vite dev proxy in `vite.config.ts` forwards `/notes` → `http://127.0.0.1:8000`. Do not hardcode `:8000` in TS.
+- **Types:** Mirror backend Pydantic schemas in `types/note.ts` — `title` max 200, `body` max 10_000; trim title before create/update.
+- **Errors:** Use `ApiError` + `apiErrorFromResponse()` for FastAPI 422 `detail` arrays; map `loc` to `title`/`body` field errors.
+- **Components:** Presentational only — props in, callbacks out; no direct `fetch` in components.
+- **Styling:** Tailwind utility classes only; no leftover Vite template CSS/assets.
+- **Dev server:** `host: "127.0.0.1"`, `port: 5173`, `strictPort: true`; Playwright `baseURL` / `webServer.url` must use the same host (`127.0.0.1`, not `localhost`).
+- **Production:** Static build (`npm run build`) needs a reverse proxy for `/notes` or equivalent; no CORS on API unless explicitly added.
+- **Out of scope unless user asks:** auth, React Router, state library, full CRUD E2E against live API.
+
 ### Testing Rules
 
 - API tests: use `tests/conftest.py` fixtures—`sqlite://` + `StaticPool`, `Base.metadata.create_all`/`drop_all` per test, override `app.dependency_overrides[get_db]`.
 - Never read/write project-root `notes.db` in unit/API tests.
 - Migration tests: separate file (`test_migrations.py`); temp file DB + `alembic.command.upgrade`; assert row preservation and nullable `updated_at` after upgrade.
 - Assert `updated_at is None` after create, non-null after PUT update.
-- Run tests: `python -m pytest` from project root.
+- Run API tests: `python -m pytest` from project root.
+- Frontend E2E: `cd frontend && npm run test:e2e` — smoke test only (app shell); API need not run for current smoke spec.
+- Do not commit `frontend/node_modules/`, `frontend/dist/`, `frontend/test-results/`, or `frontend/playwright-report/`.
 
 ### Code Quality & Style Rules
 
-- Layout: `app/main.py` (app + health), `app/routers/`, `app/store.py`, `app/models.py`, `app/db_models.py`, `app/database.py`, `tests/test_*.py`, `alembic/versions/`.
+- Backend layout: `app/main.py` (app + health), `app/routers/`, `app/store.py`, `app/models.py`, `app/db_models.py`, `app/database.py`, `tests/test_*.py`, `alembic/versions/`.
+- Frontend layout: `frontend/src/App.tsx`, `frontend/src/api/`, `frontend/src/components/`, `frontend/e2e/`.
 - Naming: `snake_case` modules and functions; ORM class `NoteRow`, API model `Note`; private mapper `_to_note`.
 - Minimal comments; code should be self-explanatory; update `README.md` when setup or migration flow changes.
 - No production secrets in repo; no auth/CORS hardening unless explicitly requested.
 
 ### Development Workflow Rules
 
-- Local setup: venv → `pip install -r requirements.txt` → `alembic upgrade head` → `uvicorn app.main:app --reload`.
+- Local setup (API): venv → `pip install -r requirements.txt` → `alembic upgrade head` → `uvicorn app.main:app --reload`.
+- Local setup (UI): `cd frontend` → `npm install` → `npm run dev` (second terminal; API must be running for CRUD).
 - Brownfield DB (pre-Alembic `create_all`): `alembic stamp 001baseline` then `alembic upgrade head` (document in README if flow changes).
 - Revision IDs in use: `001baseline` → `002updated_at` (check `alembic/versions/` for current chain).
-- Out of scope unless user asks: auth, PostgreSQL swap, pagination, Docker, multi-worker SQLite deployment.
+- Out of scope unless user asks: auth, PostgreSQL swap, pagination, Docker, multi-worker SQLite deployment, production UI hosting/CORS.
 - Planning context: ADRs in `_bmad-output/planning-artifacts/adr/`; original learning spec in `_bmad-output/implementation-artifacts/` (may be stale vs current persistence).
 
 ### Critical Don't-Miss Rules
@@ -92,6 +112,9 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **Do not** rely on `create_all` alone for team schema—always ship an Alembic revision for column/table changes.
 - When adding columns: update `db_models.py`, Pydantic `Note` if exposed, `store` mapping, **and** a new migration; keep baseline/alter split for teaching migrations.
 - `GET /health` must remain lightweight `{"status": "ok"}` for smoke checks.
+- **Do not** leave Vite template files (`App.css`, default logos, social icons) in `frontend/src` or `frontend/public`.
+- **Do not** add `fetch` calls with absolute API URLs in frontend — rely on proxy (dev) or deployment proxy (prod).
+- **Do not** change Playwright host to `localhost` while Vite binds `127.0.0.1` — causes E2E connection failures on some systems.
 
 ---
 

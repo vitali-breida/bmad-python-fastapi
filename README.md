@@ -30,6 +30,35 @@ Use a **single worker** with the default SQLite file (see ADR in `_bmad-output/p
 - Interactive docs: http://127.0.0.1:8000/docs
 - Health: http://127.0.0.1:8000/health
 
+## Web UI (React)
+
+The `frontend/` app is a Vite + React + TypeScript + Tailwind SPA. In development it proxies `/notes` to the API.
+
+**Terminal 1 — API** (from project root, venv active):
+
+```powershell
+python -m uvicorn app.main:app --reload
+```
+
+**Terminal 2 — UI:**
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Open http://127.0.0.1:5173 — create, edit, and delete notes in the browser.
+
+### Frontend E2E smoke test (Playwright)
+
+Starts the Vite dev server automatically. The API does not need to be running for the smoke test (it only checks that the app shell loads).
+
+```powershell
+cd frontend
+npm run test:e2e
+```
+
 ## Try the API
 
 ```powershell
@@ -83,6 +112,9 @@ Tests use an in-memory SQLite database via FastAPI dependency overrides (see `te
 ## Project layout
 
 ```
+frontend/
+  src/             # React UI (Vite, TypeScript, Tailwind)
+  e2e/             # Playwright smoke tests
 app/
   main.py          # FastAPI app
   models.py        # Pydantic API schemas
