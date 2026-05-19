@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, Field
 
 
@@ -15,3 +17,4 @@ class Note(BaseModel):
     id: int
     title: str
     body: str
+    updated_at: datetime | None = None

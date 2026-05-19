@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -6,7 +8,12 @@ from app.models import Note, NoteCreate, NoteUpdate
 
 
 def _to_note(row: NoteRow) -> Note:
-    return Note(id=row.id, title=row.title, body=row.body)
+    return Note(
+        id=row.id,
+        title=row.title,
+        body=row.body,
+        updated_at=row.updated_at,
+    )
 
 
 def list_notes(db: Session) -> list[Note]:
@@ -35,6 +42,7 @@ def update_note(db: Session, note_id: int, payload: NoteUpdate) -> Note | None:
         row.title = payload.title
     if payload.body is not None:
         row.body = payload.body
+    row.updated_at = datetime.now(UTC)
     db.commit()
     db.refresh(row)
     return _to_note(row)

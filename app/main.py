@@ -1,22 +1,11 @@
-from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
 
-from app.database import init_db
 from app.routers import notes
-
-
-@asynccontextmanager
-async def lifespan(_app: FastAPI):
-    init_db()
-    yield
-
 
 app = FastAPI(
     title="Notes API",
     description="Learning FastAPI — notes CRUD with SQLite persistence",
-    version="0.2.0",
-    lifespan=lifespan,
+    version="0.3.0",
 )
 
 app.include_router(notes.router)

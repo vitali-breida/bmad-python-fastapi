@@ -16,6 +16,7 @@ def test_notes_crud_flow(client: TestClient) -> None:
     assert note["id"] == 1
     assert note["title"] == "Learn FastAPI"
     assert note["body"] == "Step 1"
+    assert note["updated_at"] is None
 
     get_one = client.get("/notes/1")
     assert get_one.status_code == 200
@@ -23,7 +24,9 @@ def test_notes_crud_flow(client: TestClient) -> None:
 
     update = client.put("/notes/1", json={"body": "Step 2"})
     assert update.status_code == 200
-    assert update.json()["body"] == "Step 2"
+    updated = update.json()
+    assert updated["body"] == "Step 2"
+    assert updated["updated_at"] is not None
 
     delete = client.delete("/notes/1")
     assert delete.status_code == 204
