@@ -1,18 +1,19 @@
 ---
 project_name: 'bmad-python-fastapi'
 user_name: 'Vitali'
-date: '2026-05-19'
+date: '2026-05-21'
 sections_completed:
   - technology_stack
   - language_rules
   - framework_rules
+  - auth_rules
   - frontend_rules
   - testing_rules
   - quality_rules
   - workflow_rules
   - anti_patterns
 status: complete
-rule_count: 58
+rule_count: 72
 optimized_for_llm: true
 ---
 
@@ -31,9 +32,10 @@ _This file contains critical rules and patterns that AI agents must follow when 
 | Server | Uvicorn 0.47.x | **Single worker** with file SQLite |
 | Validation | Pydantic v2 | API schemas in `app/models.py` only |
 | ORM | SQLAlchemy 2.0 sync | Declarative `Mapped` in `app/db_models.py` |
-| Migrations | Alembic 1.18.x | Two-revision pattern (baseline + alter) |
+| Migrations | Alembic 1.18.x | Readable revision ids (`001_baseline_notes` → … → `003_add_users_table`) |
 | DB | SQLite | Default `sqlite:///./notes.db`; override via `DATABASE_URL` |
-| Tests (API) | pytest 8.x + httpx | In-memory DB via `dependency_overrides` |
+| Auth | Stateless JWT (HS256) + `pwdlib[bcrypt]` | ADR-003; `PyJWT`, `python-multipart` (login form), `python-dotenv` (loads `.env` on API import) |
+| Tests (API) | pytest 8.x + httpx | In-memory DB; override `get_db` and often `get_current_user` |
 | UI | React 19 + TypeScript 6 + Vite 8 | SPA in `frontend/` |
 | UI styling | Tailwind CSS 4 (`@tailwindcss/vite`) | Utility classes; `src/index.css` imports tailwind |
 | UI E2E | Playwright 1.60 | Smoke test in `frontend/e2e/`; dev server via `webServer` |
@@ -47,7 +49,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 ### Language-Specific Rules
 
 - Use **Python 3.11+** syntax: `list[Note]`, `dict[str, str]`, `Note | None` (not `Optional` unless existing code uses it).
-- Keep **Pydantic models** (`app/models.py`) separate from **SQLAlchemy rows** (`app/db_models.py`); map in `store._to_note()` only.
+- Keep **Pydantic models** (`app/models.py`) separate from **SQLAlchemy rows** (`app/db_models.py`); map notes in `store._to_note()`, users in `app/auth/users._to_user_read()` (no password in API).
 - Field length limits must stay aligned: `title` max 200, `body` max 10_000 in both Pydantic `Field` and SQLAlchemy `String(...)`.
 - Partial updates: `NoteUpdate` fields default to `None` meaning “omit”; only apply non-`None` fields in `store.update_note`.
 - Set `updated_at` with `datetime.now(UTC)` in `store.update_note` on successful update; leave `NULL` on create.
@@ -64,56 +66,75 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - New schema changes: **new Alembic revision**; do not merge baseline + alter into one revision (see ADR-002).
 - `alembic/env.py` must use `Base.metadata` from `app.db_models` and `DATABASE_URL` from `app.database`.
 
+### Auth Rules (ADR-003)
+
+- **Layout:** `app/auth/` — `config.py` (env + `load_dotenv` for project-root `.env`), `security.py` (hash/JWT), `users.py` (lookup; **trim username** before query), `deps.py` (`oauth2_scheme`, `get_current_user`).
+- **Routers:** `app/routers/auth.py` — `POST /auth/login` (OAuth2 form, needs `python-multipart`), `GET /auth/me`; mount before or alongside notes in `main.py`.
+- **Protected routes:** all `/notes/*` require `Depends(get_current_user)`; public: `GET /health`, `POST /auth/login`, `/docs`, `/openapi.json`.
+- **User persistence:** `UserRow` in `db_models.py`; user SQL only in `app/auth/users.py` — **not** in `store.py` (notes CRUD only).
+- **Login errors:** wrong password, unknown user, inactive user → **401** with same generic message (`Incorrect username or password`); never reveal disabled accounts.
+- **`get_current_user`:** verify JWT (`sub`, `exp`), then load `UserRow` by id from DB; bad/non-integer `sub` or missing/inactive user → **401** (never **500**).
+- **Secrets:** `SECRET_KEY` required for JWT; loaded from env (`.env` via `python-dotenv` in `app/auth/config.py`). `INITIAL_ADMIN_PASSWORD` required for Alembic `003` seed only — Alembic does **not** auto-load `.env`.
+- **Bootstrap:** seed user `admin` in migration `003_add_users_table` (idempotent); no `POST /auth/register` in v1.
+- **API version:** `0.4.0` when auth ships; breaking change: all `/notes` need `Authorization: Bearer`.
+- **Out of scope (authn v1):** RBAC/403, `owner_id` on notes, refresh tokens, register endpoint — see authz follow-up ADR.
+
 ### Frontend Rules
 
 - **Layout:** `frontend/src/` — `App.tsx` (state + handlers), `api/` (fetch + errors), `components/`, `types/`.
-- **API client:** `fetch("/notes")` only; Vite dev proxy in `vite.config.ts` forwards `/notes` → `http://127.0.0.1:8000`. Do not hardcode `:8000` in TS.
+- **API client:** relative paths only (`/notes`, `/auth/login`, `/auth/me`); use `authFetch` in `api/client.ts` for Bearer + 401 → clear token. Login uses plain `fetch` + `application/x-www-form-urlencoded`.
+- **Vite proxy:** `vite.config.ts` forwards `/notes` and `/auth` → `http://127.0.0.1:8000`. Do not hardcode `:8000` in TS.
+- **Auth UI:** login gate in `App.tsx`; token in `sessionStorage` (`access_token`); logout clears storage (no server logout). Optional hint: username is case-sensitive.
 - **Types:** Mirror backend Pydantic schemas in `types/note.ts` — `title` max 200, `body` max 10_000; trim title before create/update.
 - **Errors:** Use `ApiError` + `apiErrorFromResponse()` for FastAPI 422 `detail` arrays; map `loc` to `title`/`body` field errors.
 - **Components:** Presentational only — props in, callbacks out; no direct `fetch` in components.
 - **Styling:** Tailwind utility classes only; no leftover Vite template CSS/assets.
 - **Dev server:** `host: "127.0.0.1"`, `port: 5173`, `strictPort: true`; Playwright `baseURL` / `webServer.url` must use the same host (`127.0.0.1`, not `localhost`).
-- **Production:** Static build (`npm run build`) needs a reverse proxy for `/notes` or equivalent; no CORS on API unless explicitly added.
-- **Out of scope unless user asks:** auth, React Router, state library, full CRUD E2E against live API.
+- **Production:** Static build needs reverse proxy for `/notes` **and** `/auth` (or equivalent); no CORS on API unless explicitly added.
+- **Out of scope unless user asks:** React Router, state library, full CRUD E2E against live API with real login.
 
 ### Testing Rules
 
-- API tests: use `tests/conftest.py` fixtures—`sqlite://` + `StaticPool`, `Base.metadata.create_all`/`drop_all` per test, override `app.dependency_overrides[get_db]`.
+- API tests: `tests/conftest.py` — `sqlite://` + `StaticPool`, `create_all`/`drop_all`, autouse `SECRET_KEY`; **`client`** overrides `get_db` + `get_current_user` (mode A, fast note tests); **`auth_client`** overrides only `get_db` (mode B, real login JWT).
+- **`test_user` fixture:** insert known user before login tests; `tests/test_auth.py` for auth integration.
+- Teardown: `app.dependency_overrides.clear()` must cover **both** `get_db` and `get_current_user`.
 - Never read/write project-root `notes.db` in unit/API tests.
 - Migration tests: separate file (`test_migrations.py`); temp file DB + `alembic.command.upgrade`; assert row preservation and nullable `updated_at` after upgrade.
 - Assert `updated_at is None` after create, non-null after PUT update.
 - Run API tests: `python -m pytest` from project root.
-- Frontend E2E: `cd frontend && npm run test:e2e` — smoke test only (app shell); API need not run for current smoke spec.
+- Frontend E2E: `cd frontend && npm run test:e2e` — smoke loads **login** shell (`login-app`); API need not run for current smoke spec.
 - Do not commit `frontend/node_modules/`, `frontend/dist/`, `frontend/test-results/`, or `frontend/playwright-report/`.
 
 ### Code Quality & Style Rules
 
-- Backend layout: `app/main.py` (app + health), `app/routers/`, `app/store.py`, `app/models.py`, `app/db_models.py`, `app/database.py`, `tests/test_*.py`, `alembic/versions/`.
-- Frontend layout: `frontend/src/App.tsx`, `frontend/src/api/`, `frontend/src/components/`, `frontend/e2e/`.
+- Backend layout: `app/main.py`, `app/routers/` (`notes.py`, `auth.py`), `app/auth/`, `app/store.py`, `app/models.py`, `app/db_models.py`, `app/database.py`, `tests/test_*.py`, `alembic/versions/`.
+- Frontend layout: `frontend/src/App.tsx`, `frontend/src/api/` (`auth.ts`, `client.ts`, `notes.ts`, `errors.ts`), `frontend/src/components/`, `frontend/e2e/`.
 - Naming: `snake_case` modules and functions; ORM class `NoteRow`, API model `Note`; private mapper `_to_note`.
 - Minimal comments; code should be self-explanatory; update `README.md` when setup or migration flow changes.
-- No production secrets in repo; no auth/CORS hardening unless explicitly requested.
+- No production secrets in repo (`.env` gitignored; `.env.example` placeholders only). Rate limiting / CORS for split origins out of scope unless requested.
 
 ### Development Workflow Rules
 
-- Local setup (API): venv → `pip install -r requirements.txt` → `alembic upgrade head` → `uvicorn app.main:app --reload`.
-- Local setup (UI): `cd frontend` → `npm install` → `npm run dev` (second terminal; API must be running for CRUD).
-- Brownfield DB (pre-Alembic `create_all`): `alembic stamp 001baseline` then `alembic upgrade head` (document in README if flow changes).
-- Revision IDs in use: `001baseline` → `002updated_at` (check `alembic/versions/` for current chain).
-- Out of scope unless user asks: auth, PostgreSQL swap, pagination, Docker, multi-worker SQLite deployment, production UI hosting/CORS.
-- Planning context: ADRs in `_bmad-output/planning-artifacts/adr/`; original learning spec in `_bmad-output/implementation-artifacts/` (may be stale vs current persistence).
+- Local setup (API): venv → `pip install -r requirements.txt` → copy `.env.example` to `.env` → set `INITIAL_ADMIN_PASSWORD` → `alembic upgrade head` → `uvicorn app.main:app --reload` (`.env` loaded via `python-dotenv` in `app/auth/config.py`).
+- Local setup (UI): `cd frontend` → `npm install` → `npm run dev` (second terminal; sign in as `admin` with migration password).
+- Brownfield DB (pre-Alembic `create_all`): `alembic stamp 001_baseline_notes` then `alembic upgrade head`.
+- Brownfield **old revision ids** (`001baseline`, `002updated_at`): update `alembic_version.version_num` to readable ids before `upgrade head` (see README).
+- Revision chain: `001_baseline_notes` → `002_add_notes_updated_at` → `003_add_users_table` (revision id = filename stem).
+- Out of scope unless user asks: authz/RBAC, PostgreSQL swap, pagination, Docker, multi-worker SQLite, production UI hosting/CORS.
+- Planning context: ADRs in `_bmad-output/planning-artifacts/adr/` (ADR-003 authn); specs in `_bmad-output/implementation-artifacts/`.
 
 ### Critical Don't-Miss Rules
 
 - **Do not** run multiple Uvicorn workers against one SQLite file (`database is locked`).
-- **Do not** put business logic or raw SQL in routers; **do not** expose `NoteRow` in API responses.
+- **Do not** put business logic or raw SQL in routers; **do not** expose `NoteRow` or `hashed_password` in API responses.
+- **Do not** put user lookup or password hashing in `store.py`; **do not** skip `python-multipart` when using `OAuth2PasswordRequestForm`.
 - **Do not** add `updated_at` on create unless product explicitly requires it (nullable, no backfill per ADR-002).
 - **Do not** use async SQLAlchemy/session without a project-wide migration to async endpoints and tests.
 - **Do not** rely on `create_all` alone for team schema—always ship an Alembic revision for column/table changes.
 - When adding columns: update `db_models.py`, Pydantic `Note` if exposed, `store` mapping, **and** a new migration; keep baseline/alter split for teaching migrations.
 - `GET /health` must remain lightweight `{"status": "ok"}` for smoke checks.
 - **Do not** leave Vite template files (`App.css`, default logos, social icons) in `frontend/src` or `frontend/public`.
-- **Do not** add `fetch` calls with absolute API URLs in frontend — rely on proxy (dev) or deployment proxy (prod).
+- **Do not** add `fetch` calls with absolute API URLs in frontend — rely on proxy (dev) or deployment proxy (prod); protect `/notes` calls must use `authFetch`, not raw `fetch`.
 - **Do not** change Playwright host to `localhost` while Vite binds `127.0.0.1` — causes E2E connection failures on some systems.
 
 ---
@@ -134,4 +155,4 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Review quarterly for outdated rules.
 - Remove rules that become obvious over time.
 
-Last Updated: 2026-05-19
+Last Updated: 2026-05-21

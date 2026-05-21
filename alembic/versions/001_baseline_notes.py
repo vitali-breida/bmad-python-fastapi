@@ -1,6 +1,6 @@
 """baseline notes table
 
-Revision ID: 001baseline
+Revision ID: 001_baseline_notes
 Revises:
 Create Date: 2026-05-19
 
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision: str = "001baseline"
+revision: str = "001_baseline_notes"
 down_revision: str | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None

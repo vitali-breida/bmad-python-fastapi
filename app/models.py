@@ -18,3 +18,13 @@ class Note(BaseModel):
     title: str
     body: str
     updated_at: datetime | None = None
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class UserRead(BaseModel):
+    id: int
+    username: str = Field(..., min_length=3, max_length=64)

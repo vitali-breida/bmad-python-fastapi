@@ -1,3 +1,4 @@
+import { authFetch } from "./client";
 import { apiErrorFromResponse } from "./errors";
 import type { Note, NoteCreate, NoteUpdate } from "../types/note";
 
@@ -11,12 +12,12 @@ async function parseJson<T>(res: Response): Promise<T> {
 }
 
 export async function listNotes(): Promise<Note[]> {
-  const res = await fetch(BASE);
+  const res = await authFetch(BASE);
   return parseJson<Note[]>(res);
 }
 
 export async function createNote(payload: NoteCreate): Promise<Note> {
-  const res = await fetch(BASE, {
+  const res = await authFetch(BASE, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -25,7 +26,7 @@ export async function createNote(payload: NoteCreate): Promise<Note> {
 }
 
 export async function updateNote(id: number, payload: NoteUpdate): Promise<Note> {
-  const res = await fetch(`${BASE}/${id}`, {
+  const res = await authFetch(`${BASE}/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -34,7 +35,7 @@ export async function updateNote(id: number, payload: NoteUpdate): Promise<Note>
 }
 
 export async function deleteNote(id: number): Promise<void> {
-  const res = await fetch(`${BASE}/${id}`, { method: "DELETE" });
+  const res = await authFetch(`${BASE}/${id}`, { method: "DELETE" });
   if (!res.ok) {
     throw await apiErrorFromResponse(res);
   }

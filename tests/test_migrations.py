@@ -13,13 +13,16 @@ def _alembic_config(db_path: Path) -> Config:
     return cfg
 
 
-def test_upgrade_preserves_rows_and_leaves_updated_at_null(tmp_path: Path) -> None:
+def test_upgrade_preserves_rows_and_leaves_updated_at_null(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("INITIAL_ADMIN_PASSWORD", "migration-test-admin-pw")
     db_path = tmp_path / "migrate.db"
     cfg = _alembic_config(db_path)
     url = f"sqlite:///{db_path.as_posix()}"
     engine = create_engine(url, connect_args={"check_same_thread": False})
 
-    command.upgrade(cfg, "001baseline")
+    command.upgrade(cfg, "001_baseline_notes")
 
     with engine.begin() as conn:
         conn.execute(
@@ -36,6 +39,65 @@ def test_upgrade_preserves_rows_and_leaves_updated_at_null(tmp_path: Path) -> No
 
     assert count == 2
     assert null_updated == 2
+
+
+def test_upgrade_head_creates_users_and_seeds_admin(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("INITIAL_ADMIN_PASSWORD", "migration-test-admin-pw")
+    db_path = tmp_path / "users.db"
+    cfg = _alembic_config(db_path)
+    url = f"sqlite:///{db_path.as_posix()}"
+    engine = create_engine(url, connect_args={"check_same_thread": False})
+
+    command.upgrade(cfg, "head")
+
+    with engine.connect() as conn:
+        tables = {
+            row[0]
+            for row in conn.execute(
+                text("SELECT name FROM sqlite_master WHERE type='table'")
+            )
+        }
+        assert "users" in tables
+        admin_count = conn.execute(
+            text("SELECT COUNT(*) FROM users WHERE username = 'admin'")
+        ).scalar_one()
+
+    assert admin_count == 1
+
+
+def test_upgrade_head_fails_without_initial_admin_password(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("INITIAL_ADMIN_PASSWORD", raising=False)
+    db_path = tmp_path / "no_seed.db"
+    cfg = _alembic_config(db_path)
+
+    command.upgrade(cfg, "002_add_notes_updated_at")
+
+    with pytest.raises(RuntimeError, match="INITIAL_ADMIN_PASSWORD"):
+        command.upgrade(cfg, "head")
+
+
+def test_upgrade_head_idempotent_admin_seed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("INITIAL_ADMIN_PASSWORD", "migration-test-admin-pw")
+    db_path = tmp_path / "idempotent.db"
+    cfg = _alembic_config(db_path)
+    url = f"sqlite:///{db_path.as_posix()}"
+    engine = create_engine(url, connect_args={"check_same_thread": False})
+
+    command.upgrade(cfg, "head")
+    command.upgrade(cfg, "head")
+
+    with engine.connect() as conn:
+        admin_count = conn.execute(
+            text("SELECT COUNT(*) FROM users WHERE username = 'admin'")
+        ).scalar_one()
+
+    assert admin_count == 1
 
 
 def test_update_note_sets_updated_at(client: TestClient) -> None:

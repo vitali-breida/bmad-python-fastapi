@@ -1,7 +1,7 @@
 """add notes updated_at column
 
-Revision ID: 002updated_at
-Revises: 001baseline
+Revision ID: 002_add_notes_updated_at
+Revises: 001_baseline_notes
 Create Date: 2026-05-19
 
 """
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision: str = "002updated_at"
-down_revision: str | None = "001baseline"
+revision: str = "002_add_notes_updated_at"
+down_revision: str | None = "001_baseline_notes"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
