@@ -27,6 +27,11 @@ def create_access_token(*, sub: str) -> str:
 
 def decode_access_token(token: str) -> dict | None:
     try:
-        return jwt.decode(token, get_secret_key(), algorithms=[ALGORITHM])
+        return jwt.decode(
+            token,
+            get_secret_key(),
+            algorithms=[ALGORITHM],
+            options={"require": ["exp"]},
+        )
     except jwt.InvalidTokenError:
         return None

@@ -40,6 +40,33 @@ def test_login_wrong_password_returns_401(auth_client: TestClient) -> None:
     assert response.json()["detail"] == INVALID_CREDENTIALS
 
 
+def test_login_empty_password_returns_401(auth_client: TestClient) -> None:
+    response = auth_client.post(
+        "/auth/login",
+        data={"username": TEST_USER_USERNAME, "password": ""},
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == INVALID_CREDENTIALS
+
+
+def test_login_whitespace_username_returns_401(auth_client: TestClient) -> None:
+    response = auth_client.post(
+        "/auth/login",
+        data={"username": "   ", "password": "any"},
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == INVALID_CREDENTIALS
+
+
+def test_login_short_username_returns_401(auth_client: TestClient) -> None:
+    response = auth_client.post(
+        "/auth/login",
+        data={"username": "ab", "password": "any"},
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == INVALID_CREDENTIALS
+
+
 def test_login_inactive_user_returns_401(auth_client: TestClient, db: Session) -> None:
     inactive = UserRow(
         username="inactive",
@@ -83,6 +110,49 @@ def test_list_notes_with_non_integer_sub_returns_401(auth_client: TestClient) ->
     )
     assert response.status_code == 401
     assert response.json()["detail"] == "Could not validate credentials"
+
+
+def test_list_notes_with_sub_zero_returns_401(auth_client: TestClient) -> None:
+    token = jwt.encode(
+        {"sub": "0", "exp": datetime.now(UTC) + timedelta(minutes=5)},
+        TEST_SECRET_KEY,
+        algorithm="HS256",
+    )
+    response = auth_client.get(
+        "/notes",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Could not validate credentials"
+
+
+def test_list_notes_with_missing_exp_claim_returns_401(auth_client: TestClient) -> None:
+    token = jwt.encode(
+        {"sub": "1"},
+        TEST_SECRET_KEY,
+        algorithm="HS256",
+    )
+    response = auth_client.get(
+        "/notes",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Could not validate credentials"
+
+
+def test_list_notes_malformed_authorization_header_returns_401(
+    auth_client: TestClient,
+) -> None:
+    response = auth_client.get(
+        "/notes",
+        headers={"Authorization": "Token not-a-bearer-token"},
+    )
+    assert response.status_code == 401
+
+
+def test_auth_me_without_bearer_returns_401(auth_client: TestClient) -> None:
+    response = auth_client.get("/auth/me")
+    assert response.status_code == 401
 
 
 def test_list_notes_with_expired_token_returns_401(auth_client: TestClient) -> None:

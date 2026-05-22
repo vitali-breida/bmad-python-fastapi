@@ -95,6 +95,10 @@ Revision chain:
 2. `002_add_notes_updated_at` — adds nullable `updated_at` (`DateTime(timezone=True)`)
 3. `003_add_users_table` — `users` table + bootstrap `admin` (requires `INITIAL_ADMIN_PASSWORD` in the environment)
 
+**Downgrade warning:** `alembic downgrade` past revision `003_add_users_table` **drops the `users` table** and removes bootstrap accounts. Back up `notes.db` before downgrading in environments that matter.
+
+**Auth env (see `.env.example`):** `SECRET_KEY` (required for JWT; empty/whitespace = unset), `ACCESS_TOKEN_EXPIRE_MINUTES` (intended range 1–10080, default 60), `ENVIRONMENT` or `ENV` (`production` / `prod` triggers prod fail-fast for missing `SECRET_KEY`), `INITIAL_ADMIN_PASSWORD` (migration only; strip applied on upgrade).
+
 ### Brownfield: `notes.db` from before Alembic
 
 If you already have a database created by the older `create_all` flow (ADR-001) with the baseline columns only:

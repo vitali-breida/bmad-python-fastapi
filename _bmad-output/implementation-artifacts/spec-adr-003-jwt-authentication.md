@@ -24,7 +24,9 @@ context:
 
 **Ask First:** Committing or stashing unrelated dirty-tree changes; brownfield DBs still on old Alembic revision strings (`001baseline` / `002updated_at`).
 
-**Never:** `owner_id` on notes, RBAC/403, refresh tokens, `POST /auth/register`, session cookies, rate limiting, JWT roles in payload.
+**Never:** `owner_id` on notes, RBAC/403, refresh tokens, `POST /auth/register`, session cookies, JWT roles in payload.
+
+**Not in authn v1:** Rate limiting on `/auth/login` — optional follow-up per ADR (not implemented).
 
 ## I/O & Edge-Case Matrix
 
@@ -32,12 +34,26 @@ context:
 |----------|--------------|---------------------------|----------------|
 | Login OK | Valid username/password, `is_active=true` | 200 `{access_token, token_type:bearer}` | N/A |
 | Login fail | Wrong password, unknown user, or `is_active=false` | 401 generic invalid credentials | Same body for all |
+| Login: whitespace-only username | `username` trim → empty or &lt; 3 chars | 401, `detail` = `Incorrect username or password` | Same as unknown user |
+| Login: empty password | Valid username, `password=""` | 401, same generic body | Same as wrong password |
+| Login: short username | After trim, length &lt; 3 (e.g. `ab`) | 401, same generic body | `get_user_by_username` returns None |
+| Login: wrong Content-Type | JSON body instead of form-urlencoded | 422 validation error | Not 401 |
 | Notes without token | No `Authorization` | 401 on all `/notes/*` | N/A |
+| Notes: no Bearer + invalid JSON | `POST /notes` without auth, malformed JSON body | **422** (body validation before auth dependency on that route) | Document precedence; not 401 |
 | Notes with token | Valid Bearer after login | 200/201/204 per existing CRUD | 404 unchanged for missing note |
 | `/auth/me` | Valid Bearer | 200 `UserRead` (no hash) | 401 if missing/invalid |
-| `get_current_user` | JWT `sub` non-integer or user gone | 401 | Never 500 on bad `sub` |
+| `/auth/me` without Bearer | No `Authorization` header | 401 `Could not validate credentials` | N/A |
+| `get_current_user` | Invalid JWT / bad signature | 401 `Could not validate credentials` | HS256 decode allowlist only |
+| `get_current_user` | JWT `sub` non-integer | 401 | Never 500 on bad `sub` |
+| `get_current_user` | JWT `sub` integer ≤ 0 (e.g. `"0"`) | 401 | No user row for id 0 |
+| `get_current_user` | Expired JWT (`exp` in past) | 401 | PyJWT rejects |
+| `get_current_user` | JWT missing `exp` claim | 401 | PyJWT rejects |
+| `get_current_user` | Valid JWT, user id missing in DB | 401 | Deleted user |
+| `get_current_user` | Valid JWT, user deactivated after issue | 401 | DB reload; `is_active=false` |
+| `get_current_user` | Malformed `Authorization` (not `Bearer`) | 401 | OAuth2 scheme: `Not authenticated`; invalid Bearer JWT: `Could not validate credentials` |
+| Valid JWT after password change | Old token before `exp` | **200** on protected routes | Stateless: no server-side revocation until `exp` |
 | Migration seed | `INITIAL_ADMIN_PASSWORD` unset | `alembic upgrade` fails with clear message | Idempotent skip if `admin` exists |
-| Public | `GET /health`, `POST /auth/login` | 200 without Bearer | N/A |
+| Public | `GET /health`, `POST /auth/login` | 200/401 without Bearer on notes | N/A |
 
 </frozen-after-approval>
 
@@ -103,7 +119,11 @@ context:
 - Given seeded user and correct password, when `POST /auth/login`, then 200 with `access_token`.
 - Given valid token, when `GET /auth/me`, then 200 with `id` and `username` only.
 - Given valid token from login, when `GET /notes`, then 200 (mode B test).
-- Given wrong password or inactive user, when login, then 401 with same generic message.
+- Given wrong password, unknown user, inactive user, empty password, whitespace-only username, or username &lt; 3 chars after trim, when login, then 401 with same generic message (`Incorrect username or password`).
+- Given login with JSON body (wrong Content-Type), when `POST /auth/login`, then 422.
+- Given no Bearer on `GET /auth/me`, when calling `/auth/me`, then 401.
+- Given invalid JWT, non-integer `sub`, `sub` ≤ 0, expired token, missing `exp`, missing user, deactivated user after issue, or malformed Authorization header, when calling a protected route, then 401 `Could not validate credentials`.
+- Given valid JWT issued before a password change and before `exp`, when calling protected routes, then 200 (stateless limitation — no revocation).
 - Given `alembic upgrade head` with `INITIAL_ADMIN_PASSWORD` set, when checking DB, then `users` table exists and `admin` row present (idempotent re-run safe).
 
 ## Design Notes

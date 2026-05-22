@@ -27,12 +27,12 @@ The Notes API (FastAPI + SQLite + Alembic + React UI) currently exposes CRUD `/n
 | User persistence | SQLAlchemy `users` table + Alembic **`003_add_users_table`** (`revision` id = filename stem; `down_revision = 002_add_notes_updated_at`) |
 | User lookup | `app/auth/users.py` — not `store.py`; **trim username** in `get_user_by_username` before DB lookup (login now; register later) |
 | Bootstrap user | Seed **`admin`** in migration `upgrade()` only; hash from env `INITIAL_ADMIN_PASSWORD` (upgrade **fails** if unset); idempotent insert; no `POST /auth/register` in v1 |
-| Username rules | Unique **case-sensitive**; min length **3**; UI hint that username is case-sensitive (optional) |
+| Username rules | Unique **case-sensitive**; min length **3**; max length **64** (DB column); trim on login; UI hint that username is case-sensitive (optional) |
 | Token claims | `sub` = user id (string), `exp` = expiry (UTC) |
-| Signing | HS256; **`SECRET_KEY`** required in prod (no default, fail fast); local dev may use documented placeholder in `.env.example` only |
+| Signing | HS256; decode uses **algorithm allowlist** (`algorithms=[ALGORITHM]` only — no `alg` confusion); **`SECRET_KEY`** required in prod (no default, fail fast; empty/whitespace treated as unset); local dev may use documented placeholder in `.env.example` only |
 | Login (inactive user) | `is_active = false` → **401** with same generic message as wrong password (do not reveal “disabled account”) |
 | JWT library | **`PyJWT`** |
-| Token TTL | Default **60 minutes**; override via `ACCESS_TOKEN_EXPIRE_MINUTES` (e.g. longer in local `.env` only) |
+| Token TTL | Default **60 minutes**; override via `ACCESS_TOKEN_EXPIRE_MINUTES` in range **1–10080** (invalid or out-of-range → fail fast at app startup) |
 | API version | Bump to **`0.4.0`**; README notes breaking change (all `/notes` require Bearer) |
 | Notes schema | **No `owner_id`** in authn migration — wait for authz ADR |
 | Protected surface | All `/notes/*` and **`GET /auth/me`**; `/health` and `POST /auth/login` remain public |
@@ -145,11 +145,11 @@ JWT alone is not enough — the DB check covers deleted/disabled users after the
 | Column | Type | Notes |
 |--------|------|-------|
 | `id` | Integer PK | |
-| `username` | String, unique, indexed | Case-sensitive unique; min length 3 (enforced in app + DB constraint where practical) |
+| `username` | String(64), unique, indexed | Case-sensitive unique; min length 3 after trim (login); max 64 chars (column limit) |
 | `hashed_password` | String | Never expose via API |
 | `is_active` | Boolean, default true | Inactive → 401 in `get_current_user` |
 
-**Seed / bootstrap:** Alembic revision **`003_add_users_table`** creates `users` and inserts `admin` in `upgrade()` using **`INITIAL_ADMIN_PASSWORD`** (hashed in migration). If env is missing, **upgrade fails** with a clear error. Insert is **idempotent** (skip if `admin` already exists). Document in README + `.env.example`; never commit real passwords. **pytest** uses `create_all` + **`test_user` fixture** — migration seed does not run there. No `POST /auth/register` in v1.
+**Seed / bootstrap:** Alembic revision **`003_add_users_table`** creates `users` and inserts `admin` in `upgrade()` using **`INITIAL_ADMIN_PASSWORD`** (strip whitespace; reject missing or empty after strip; optional min length 8 — see migration/README). If env is missing or blank, **upgrade fails** with a clear error. Insert is **idempotent** (skip if `admin` already exists). **`downgrade`** on `003` **drops the `users` table** (see README). Document in README + `.env.example`; never commit real passwords. **pytest** uses `create_all` + **`test_user` fixture** — migration seed does not run there. No `POST /auth/register` in v1.
 
 ### Alembic naming (readable revision ids)
 
@@ -170,15 +170,15 @@ JWT alone is not enough — the DB check covers deleted/disabled users after the
 ### `POST /auth/login`
 
 - **Auth:** none (public)
-- **Body:** `application/x-www-form-urlencoded` — `username`, `password` (trim username; OAuth2 password grant shape for Swagger)
+- **Body:** `application/x-www-form-urlencoded` — `username`, `password` (trim username before lookup; OAuth2 password grant shape for Swagger). Wrong Content-Type (e.g. JSON) → **422**.
 - **200:** `{ "access_token": "<jwt>", "token_type": "bearer" }`
-- **401:** invalid credentials (generic message; wrong password, unknown username, or **`is_active = false`** — same wording for all)
+- **401:** invalid credentials (generic message; wrong password, **empty password**, unknown username, **whitespace-only or short username after trim** (length &lt; 3), or **`is_active = false`** — same wording for all)
 
 ### `GET /auth/me`
 
 - **Auth:** Bearer JWT required
 - **200:** `{ "id": 1, "username": "alice" }` (`response_model=UserRead`)
-- **401:** missing/invalid token
+- **401:** missing/invalid token, malformed `Authorization` (not `Bearer`), invalid/expired JWT, non-integer or ≤ 0 `sub`, missing user, or inactive user
 
 ### `/notes/*`
 
@@ -205,7 +205,8 @@ JWT alone is not enough — the DB check covers deleted/disabled users after the
 
 Mark items `[x]` after implementation (e.g. in final auth PR or README “Security checklist for v0.4.0”).
 
-- [x] `SECRET_KEY` required in prod; dev placeholder only in `.env.example` (`.env` not committed)
+- [x] `SECRET_KEY` required in prod (`ENVIRONMENT` or `ENV` = `production` / `prod`); empty/whitespace treated as unset; dev placeholder only in `.env.example` (`.env` not committed)
+- [x] JWT decode: HS256 allowlist only (`algorithms=[ALGORITHM]` in `decode_access_token`)
 - [x] Passwords: bcrypt (or approved equivalent); never log passwords or tokens
 - [x] JWT payload minimal: `sub`, `exp` only (no roles in token until authz ADR defines claim strategy)
 - [x] HTTPS assumed for real deployment; local HTTP acceptable for learning
@@ -290,7 +291,7 @@ Pattern mirrors existing in-memory DB override for `get_db`.
 
 **Negative / constraints**
 
-- Stateless JWT cannot be revoked until expiry (unless refresh/blocklist added later).
+- Stateless JWT cannot be revoked until expiry (unless refresh/blocklist added later). **Password change does not invalidate outstanding tokens** until `exp`.
 - All API tests must acquire token or override `get_current_user`.
 - JWT in browser storage requires XSS discipline on frontend.
 - Single shared note namespace until authz — acceptable for authn-only milestone.
