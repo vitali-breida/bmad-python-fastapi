@@ -14,6 +14,12 @@ def _is_production() -> bool:
     return env in ("production", "prod")
 
 
+def validate_production_config() -> None:
+    """Fail at container startup if production is missing SECRET_KEY."""
+    if _is_production():
+        get_secret_key()
+
+
 def get_secret_key() -> str:
     """Return JWT signing secret. Fails fast if unset in production."""
     key = os.getenv("SECRET_KEY")

@@ -120,8 +120,9 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Brownfield DB (pre-Alembic `create_all`): `alembic stamp 001_baseline_notes` then `alembic upgrade head`.
 - Brownfield **old revision ids** (`001baseline`, `002updated_at`): update `alembic_version.version_num` to readable ids before `upgrade head` (see README).
 - Revision chain: `001_baseline_notes` → `002_add_notes_updated_at` → `003_add_users_table` (revision id = filename stem).
-- Out of scope unless user asks: authz/RBAC, PostgreSQL swap, pagination, Docker, multi-worker SQLite, production UI hosting/CORS.
-- Planning context: ADRs in `_bmad-output/planning-artifacts/adr/` (ADR-003 authn); specs in `_bmad-output/implementation-artifacts/`.
+- Out of scope unless user asks: authz/RBAC, PostgreSQL swap (local dev), pagination, multi-worker SQLite, production UI hosting/CORS.
+- **CI/CD (ADR-004):** `.github/workflows/ci.yml` (pytest, lint, build, Playwright); preview via `Dockerfile` + `deploy/nginx.conf.template` (manual Render deploy, single HTTPS origin); Neon `DATABASE_URL` optional for persistence. See `plan-ci-cd-phases.md` and README preview section.
+- Planning context: ADRs in `_bmad-output/planning-artifacts/adr/` (ADR-003 authn, ADR-004 CI/CD); specs in `_bmad-output/implementation-artifacts/`.
 
 ### Critical Don't-Miss Rules
 

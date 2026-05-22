@@ -1,5 +1,14 @@
 # Deferred work
 
+## CI/CD and preview (ADR-004)
+
+**ADR:** `../planning-artifacts/adr/adr-004-ci-cd-and-preview-deployment.md`  
+**Phased plan:** `plan-ci-cd-phases.md` (Phase 1 CI → Phase 2 Render → Phase 3 Neon).
+
+- Phase 1–3 implementation — not started until explicitly requested.
+- Playwright login → notes CRUD on live API — overlaps item below; useful before/after Phase 2.
+- Post-deploy smoke, auto-deploy on `main`, Postgres for local dev — see plan backlog.
+
 ## ADR-003 edge-case follow-up (consolidated)
 
 Full hunter pass (ADR + spec): **`adr-003-follow-up-edge-cases.md`**.  

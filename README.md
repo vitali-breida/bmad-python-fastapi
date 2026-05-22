@@ -1,5 +1,7 @@
 # Notes API — FastAPI learning project
 
+[![CI](https://github.com/vitali-breida/bmad-python-fastapi/actions/workflows/ci.yml/badge.svg)](https://github.com/vitali-breida/bmad-python-fastapi/actions/workflows/ci.yml)
+
 Minimal CRUD API for notes with **SQLite** persistence and **JWT authentication** (ADR-003). Built to practice FastAPI basics: routes, Pydantic validation, dependency injection, SQLAlchemy, Alembic migrations, status codes, and tests.
 
 **Breaking change (v0.4.0):** all `/notes` endpoints require `Authorization: Bearer <access_token>`. Obtain a token via `POST /auth/login` (see `.env.example` for bootstrap `admin` password after migrations).
@@ -134,6 +136,44 @@ python -m pytest
 ```
 
 Tests use an in-memory SQLite database via FastAPI dependency overrides (see `tests/conftest.py`). Migration behavior is covered in `tests/test_migrations.py`.
+
+## Continuous integration
+
+On every push and pull request to `main`, GitHub Actions runs three jobs (see [`.github/workflows/ci.yml`](.github/workflows/ci.yml)):
+
+| Job | Checks |
+|-----|--------|
+| `backend` | `python -m pytest` (Python 3.11) |
+| `frontend` | `npm run lint`, `npm run build` (Node 20) |
+| `e2e` | Playwright smoke (`CI=true`; Vite dev server only) |
+
+No repository secrets are required for CI.
+
+## Preview deploy (Render)
+
+**ADR-004** — manual deploy to a single HTTPS origin (`https://<service>.onrender.com`). The Docker image serves the Vite build via nginx and proxies `/notes`, `/auth`, `/health`, and `/docs` to Uvicorn on the same host (same relative paths as local dev).
+
+### Operator checklist
+
+1. [Render](https://render.com) account → connect this GitHub repo.
+2. **New Web Service** → **Docker** → branch `main` → enable **manual deploy** (recommended while learning the stack).
+3. Environment variables (never commit values):
+
+   | Variable | Purpose |
+   |----------|---------|
+   | `SECRET_KEY` | JWT signing (required in production) |
+   | `INITIAL_ADMIN_PASSWORD` | Bootstrap `admin` on first `alembic upgrade head` |
+   | `ENVIRONMENT` | `production` (container exits at startup if `SECRET_KEY` is missing) |
+   | `DATABASE_URL` | Optional Phase 2: default SQLite in container; **Phase 3:** Neon Postgres URL |
+
+4. In the Render service settings, set **Health Check Path** to `/health` (checks API via nginx, not only the static page).
+5. Deploy manually; open the public URL and sign in as `admin`.
+
+**Phase 2 limitation:** without Neon, SQLite lives on the container filesystem — notes may be **lost on redeploy** or instance replacement.
+
+**Phase 3 (persistence):** create a [Neon](https://neon.tech) project, copy the `postgresql://…` connection string (often with `?sslmode=require`), set `DATABASE_URL` on Render, redeploy. `psycopg` is in `requirements.txt`. After redeploy, existing notes should remain.
+
+Phased checklist: `_bmad-output/implementation-artifacts/plan-ci-cd-phases.md` · ADR: `_bmad-output/planning-artifacts/adr/adr-004-ci-cd-and-preview-deployment.md`.
 
 ## Project layout
 

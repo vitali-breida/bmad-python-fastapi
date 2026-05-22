@@ -1,0 +1,190 @@
+# CI/CD implementation plan (phased)
+
+**ADR:** `../planning-artifacts/adr/adr-004-ci-cd-and-preview-deployment.md`  
+**Status:** Implemented in repo — operator acceptance on GitHub/Render pending  
+**Phase 1 progress:** workflow + README ✓ · acceptance 0/3 until first green run on `main`/PR  
+**Phase 2 progress:** Dockerfile + nginx + entrypoint ✓ · Render deploy manual  
+**Phase 3 progress:** `psycopg` in requirements + docs ✓ · Neon `DATABASE_URL` on Render manual  
+**Last updated:** 2026-05-22
+
+## Summary
+
+| Phase | Goal | User-visible outcome |
+|-------|------|----------------------|
+| **1** | CI | Green/red checks on GitHub for PRs and `main` |
+| **2** | CD (manual) | `https://<app>.onrender.com` — one URL, HTTPS |
+| **3** | Persistence | Demo notes survive Render redeploys |
+
+---
+
+## Plan verification
+
+**Last verified:** 2026-05-22 (re-check after local lint fix in `frontend/src/App.tsx`)  
+**Verdict:** ADR-004 and this plan are aligned; **repo artifacts shipped** (workflow, Docker, `psycopg`). Confirm acceptance on GitHub Actions and Render.
+
+### ADR ↔ plan
+
+| Check | Result |
+|-------|--------|
+| Phases, triggers, jobs, secrets, one-origin proxy | Pass |
+| Deferred backlog ↔ `deferred-work.md` | Pass |
+| `project-context.md` / README pointers to ADR-004 | Pass |
+
+### Phase 1 — preflight (repo commands, workflow not added)
+
+| Command | Result | Notes |
+|---------|--------|--------|
+| `python -m pytest` | Pass | 28 tests; in-memory DB via `conftest.py` |
+| `cd frontend && npm run lint` | Pass | Was blocked by `react-hooks/set-state-in-effect` on `setLoading(false)` in `useEffect`; fixed by initializing `loading` from `getAccessToken()` and dropping the guest branch `setState` in the effect |
+| `cd frontend && npm run build` | Pass | `tsc` + Vite |
+| `cd frontend && CI=true npm run test:e2e` | Not re-run locally | Port `5173` already in use on dev machine; `playwright.config.ts` uses `reuseExistingServer: !process.env.CI` — expect pass on a clean GitHub runner |
+
+### Phase 1 — implementation artifacts
+
+| Artifact | Status |
+|----------|--------|
+| `.github/workflows/ci.yml` | Present |
+| README CI section / badge | Present |
+| `Dockerfile`, `deploy/nginx.conf.template`, `deploy/entrypoint.sh` | Present (Phase 2) |
+| `psycopg[binary]` in `requirements.txt` | Present (Phase 3) |
+
+### Phases 2–3 — design review (no deploy artifacts)
+
+| Topic | Status | Note for implementers |
+|-------|--------|------------------------|
+| nginx + static + `/notes`, `/auth` proxy | Design OK | Matches Vite dev proxy and relative API paths |
+| Render `PORT` | Open detail | Bind nginx to `$PORT`, not hard-coded 80 only |
+| `/health`, `/docs` on preview host | Open detail | Add proxy `location`s or document intentional omission |
+| `INITIAL_ADMIN_PASSWORD` on first deploy | Required | Alembic `003` fails without env (Alembic does not load `.env`) |
+| Neon / `psycopg` | Deferred | Correct per Phase 3 |
+
+---
+
+## Phase 1 — GitHub Actions CI
+
+### Scope
+
+- Add `.github/workflows/ci.yml` (name e.g. `CI`).
+- Triggers: `push` and `pull_request` to `main`.
+- No Render, Neon, or repository secrets required for production (pytest already sets test `SECRET_KEY` via `conftest.py`).
+
+### Jobs
+
+| Job | Working directory | Steps |
+|-----|-------------------|--------|
+| `backend` | repo root | Python 3.11, `pip install -r requirements.txt`, `python -m pytest` |
+| `frontend` | `frontend/` | Node 20, `npm ci`, `npm run lint`, `npm run build` |
+| `e2e` | `frontend/` | `npm ci`, `npx playwright install --with-deps chromium`, `npm run test:e2e` with `CI=true` |
+
+Jobs may run in parallel. E2E uses Playwright `webServer` (`npm run dev` on `127.0.0.1:5173`); API does not need to run.
+
+### Acceptance criteria
+
+- [ ] Workflow runs on a test PR against `main`.
+- [ ] All three jobs pass on current `main`.
+- [ ] README section documents CI briefly (optional one paragraph + link to workflow).
+
+### Out of scope (Phase 1)
+
+- Deploy, Docker, nginx, Neon, `psycopg`.
+- Full auth + notes E2E against API.
+- `pip audit`, Ruff, mypy (unless added by separate decision).
+
+---
+
+## Phase 2 — Manual preview on Render
+
+### Scope
+
+- `Dockerfile` multi-stage or single image: build `frontend/dist`, run Uvicorn, nginx on port 80 (or Render `PORT`).
+- `deploy/nginx.conf` (or similar): serve static; `proxy_pass` for `/notes` and `/auth` to Uvicorn.
+- Render Web Service: deploy from GitHub repo; **manual deploy** enabled.
+- Environment on Render: `SECRET_KEY`, `INITIAL_ADMIN_PASSWORD`, `ENVIRONMENT=production`.
+- Startup: `alembic upgrade head` then nginx + uvicorn (entrypoint script).
+
+### Architecture (one origin)
+
+```
+Browser → https://<service>.onrender.com
+            ├── /          → static (Vite build)
+            ├── /notes/*   → proxy → uvicorn
+            └── /auth/*    → proxy → uvicorn
+```
+
+### Acceptance criteria
+
+- [ ] Opening preview URL shows login shell over HTTPS.
+- [ ] Login as bootstrap `admin` works; CRUD notes works in session.
+- [ ] `/docs` and `/health` reachable through same host (if exposed via proxy or direct path policy documented).
+
+### Known limitation until Phase 3
+
+- Default `DATABASE_URL` SQLite inside container: data may be **lost on redeploy** or instance replacement. Acceptable short-term per ADR-004; document in README preview section.
+
+### Operator checklist (Render)
+
+1. Create Render account; connect GitHub repo.
+2. New **Web Service** → Docker; select branch (e.g. `main`).
+3. Set environment variables (secrets); do not commit values.
+4. First deploy manual; copy public URL (`https://…onrender.com`).
+5. Re-deploy manually after changes when ready.
+
+---
+
+## Phase 3 — Neon Postgres (persistence)
+
+### Scope
+
+- Create Neon project; copy `postgresql://…` connection string.
+- Add Postgres driver to `requirements.txt` (e.g. `psycopg[binary]`).
+- Verify Alembic revisions on Postgres (especially `003_add_users_table` bootstrap).
+- Set `DATABASE_URL` on Render; remove reliance on container-local SQLite for preview.
+- Document SSL/`sslmode` if required by Neon connection string.
+
+### Acceptance criteria
+
+- [ ] Create note on preview; trigger manual redeploy; note still present.
+- [ ] Migration `upgrade head` succeeds against Neon on deploy.
+
+### Out of scope unless requested
+
+- Postgres for local dev (can remain SQLite).
+- Connection pooling / multi-worker (stay single worker per ADR-001 SQLite guidance; revisit for Postgres if scaling preview).
+
+---
+
+## Deferred (backlog)
+
+Tracked in `deferred-work.md` where overlapping:
+
+| Item | Notes |
+|------|--------|
+| Playwright login → notes CRUD with live API | Stronger demo guarantee; run API in CI or against preview |
+| Post-deploy smoke in workflow | `curl /health`, login after Render deploy |
+| Auto-deploy on `main` | Revisit after manual CD is stable |
+| Rate limiting on preview | ADR-003 optional follow-up |
+| Custom domain + DNS | Optional on Render |
+
+---
+
+## Documentation touchpoints when implementing
+
+| File | Change |
+|------|--------|
+| `README.md` | CI badge/section; optional “Preview deploy” with Render + Neon steps |
+| `.env.example` | Comment preview-only vars; no real secrets |
+| `_bmad-output/project-context.md` | Reference ADR-004; narrow “out of scope Docker/hosting” once Phase 2 ships |
+
+---
+
+## Decision log (workshop 2026-05-22)
+
+| Question | Decision |
+|----------|----------|
+| CI only vs CI+CD first? | CI first (Phase 1) |
+| Hosting | Render |
+| Postgres timing | After CI; Neon in Phase 3 |
+| Pipeline depth | Baseline (pytest, lint, build, Playwright smoke) |
+| Deploy trigger | Manual |
+| URL model | Single HTTPS origin |
+| Budget / repo | Free tier; public GitHub |
