@@ -144,14 +144,16 @@ On every push and pull request to `main`, GitHub Actions runs three jobs (see [`
 | Job | Checks |
 |-----|--------|
 | `backend` | `python -m pytest` (Python 3.11) |
-| `frontend` | `npm run lint`, `npm run build` (Node 20) |
+| `frontend` | `npm run lint`, `npm run build` (Node 24) |
 | `e2e` | Playwright smoke (`CI=true`; Vite dev server only) |
 
 No repository secrets are required for CI.
 
 ## Preview deploy (Render)
 
-**ADR-004** — manual deploy to a single HTTPS origin (`https://<service>.onrender.com`). The Docker image serves the Vite build via nginx and proxies `/notes`, `/auth`, `/health`, and `/docs` to Uvicorn on the same host (same relative paths as local dev).
+**Live preview (ADR-004 v1):** https://bmad-python-fastapi.onrender.com/
+
+Manual deploy to a single HTTPS origin. The Docker image serves the Vite build via nginx and proxies `/notes`, `/auth`, `/health`, and `/docs` to Uvicorn on the same host (same relative paths as local dev). Free tier may sleep after idle (cold start on first visit).
 
 ### Operator checklist
 
@@ -171,9 +173,9 @@ No repository secrets are required for CI.
 
 **Phase 2 limitation:** without Neon, SQLite lives on the container filesystem — notes may be **lost on redeploy** or instance replacement.
 
-**Phase 3 (persistence):** create a [Neon](https://neon.tech) project, copy the `postgresql://…` connection string (often with `?sslmode=require`), set `DATABASE_URL` on Render, redeploy. `psycopg` is in `requirements.txt`. After redeploy, existing notes should remain.
+**Phase 3 (persistence, deferred):** when needed — [Neon](https://neon.tech) project → `DATABASE_URL` on Render → redeploy. `psycopg` is already in `requirements.txt`.
 
-Phased checklist: `_bmad-output/implementation-artifacts/plan-ci-cd-phases.md` · ADR: `_bmad-output/planning-artifacts/adr/adr-004-ci-cd-and-preview-deployment.md`.
+ADR-004 v1 is complete (CI + Render). Phase 3 and backlog: `_bmad-output/implementation-artifacts/deferred-work.md`. Plan: `_bmad-output/implementation-artifacts/plan-ci-cd-phases.md` · ADR: `_bmad-output/planning-artifacts/adr/adr-004-ci-cd-and-preview-deployment.md`.
 
 ## Project layout
 

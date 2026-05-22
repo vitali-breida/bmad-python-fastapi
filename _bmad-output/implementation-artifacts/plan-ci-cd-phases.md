@@ -1,10 +1,11 @@
 # CI/CD implementation plan (phased)
 
 **ADR:** `../planning-artifacts/adr/adr-004-ci-cd-and-preview-deployment.md`  
-**Status:** Implemented in repo — operator acceptance on GitHub/Render pending  
-**Phase 1 progress:** workflow + README ✓ · acceptance 0/3 until first green run on `main`/PR  
-**Phase 2 progress:** Dockerfile + nginx + entrypoint ✓ · Render deploy manual  
-**Phase 3 progress:** `psycopg` in requirements + docs ✓ · Neon `DATABASE_URL` on Render manual  
+**Status:** **v1 complete** (Phases 1–2 accepted; Phase 3 deferred)  
+**Preview URL:** https://bmad-python-fastapi.onrender.com/  
+**Phase 1:** CI green on `main` ✓  
+**Phase 2:** Render manual deploy ✓  
+**Phase 3:** deferred — Neon `DATABASE_URL` not configured on Render  
 **Last updated:** 2026-05-22
 
 ## Summary
@@ -19,8 +20,8 @@
 
 ## Plan verification
 
-**Last verified:** 2026-05-22 (re-check after local lint fix in `frontend/src/App.tsx`)  
-**Verdict:** ADR-004 and this plan are aligned; **repo artifacts shipped** (workflow, Docker, `psycopg`). Confirm acceptance on GitHub Actions and Render.
+**Last verified:** 2026-05-22 (post-deploy: CI green, Render preview live, local Docker smoke OK)  
+**Verdict:** ADR-004 v1 **done**. Phase 3 and backlog tracked in `deferred-work.md`.
 
 ### ADR ↔ plan
 
@@ -53,8 +54,8 @@
 | Topic | Status | Note for implementers |
 |-------|--------|------------------------|
 | nginx + static + `/notes`, `/auth` proxy | Design OK | Matches Vite dev proxy and relative API paths |
-| Render `PORT` | Open detail | Bind nginx to `$PORT`, not hard-coded 80 only |
-| `/health`, `/docs` on preview host | Open detail | Add proxy `location`s or document intentional omission |
+| Render `PORT` | Done | `entrypoint.sh` + `envsubst` on `nginx.conf.template` |
+| `/health`, `/docs` on preview host | Done | Regex `location` in `deploy/nginx.conf.template`; Render health check `/health` |
 | `INITIAL_ADMIN_PASSWORD` on first deploy | Required | Alembic `003` fails without env (Alembic does not load `.env`) |
 | Neon / `psycopg` | Deferred | Correct per Phase 3 |
 
@@ -73,16 +74,16 @@
 | Job | Working directory | Steps |
 |-----|-------------------|--------|
 | `backend` | repo root | Python 3.11, `pip install -r requirements.txt`, `python -m pytest` |
-| `frontend` | `frontend/` | Node 20, `npm ci`, `npm run lint`, `npm run build` |
+| `frontend` | `frontend/` | Node 24, `npm ci`, `npm run lint`, `npm run build` |
 | `e2e` | `frontend/` | `npm ci`, `npx playwright install --with-deps chromium`, `npm run test:e2e` with `CI=true` |
 
 Jobs may run in parallel. E2E uses Playwright `webServer` (`npm run dev` on `127.0.0.1:5173`); API does not need to run.
 
 ### Acceptance criteria
 
-- [ ] Workflow runs on a test PR against `main`.
-- [ ] All three jobs pass on current `main`.
-- [ ] README section documents CI briefly (optional one paragraph + link to workflow).
+- [x] Workflow runs on push/PR to `main`.
+- [x] All three jobs pass on `main`.
+- [x] README section documents CI (badge + workflow link).
 
 ### Out of scope (Phase 1)
 
@@ -113,9 +114,9 @@ Browser → https://<service>.onrender.com
 
 ### Acceptance criteria
 
-- [ ] Opening preview URL shows login shell over HTTPS.
-- [ ] Login as bootstrap `admin` works; CRUD notes works in session.
-- [ ] `/docs` and `/health` reachable through same host (if exposed via proxy or direct path policy documented).
+- [x] Preview URL shows login shell over HTTPS — https://bmad-python-fastapi.onrender.com/
+- [x] Login as bootstrap `admin` works; CRUD notes works in session.
+- [x] `/docs` and `/health` reachable on same host (nginx proxy).
 
 ### Known limitation until Phase 3
 
@@ -131,7 +132,9 @@ Browser → https://<service>.onrender.com
 
 ---
 
-## Phase 3 — Neon Postgres (persistence)
+## Phase 3 — Neon Postgres (persistence) — **deferred**
+
+Not scheduled for v1. Code prep (`psycopg`, `DATABASE_URL` normalization) is in repo; operator steps remain in README when needed.
 
 ### Scope
 
@@ -167,13 +170,15 @@ Tracked in `deferred-work.md` where overlapping:
 
 ---
 
-## Documentation touchpoints when implementing
+## Documentation touchpoints (v1 — done)
 
-| File | Change |
+| File | Status |
 |------|--------|
-| `README.md` | CI badge/section; optional “Preview deploy” with Render + Neon steps |
-| `.env.example` | Comment preview-only vars; no real secrets |
-| `_bmad-output/project-context.md` | Reference ADR-004; narrow “out of scope Docker/hosting” once Phase 2 ships |
+| `README.md` | CI badge/section; preview deploy + live URL |
+| `.env.example` | Neon `DATABASE_URL` comment |
+| `_bmad-output/project-context.md` | ADR-004 + preview URL |
+| `deferred-work.md` | Phase 3 + backlog |
+| `adr-004-ci-cd-and-preview-deployment.md` | Implementation status |
 
 ---
 

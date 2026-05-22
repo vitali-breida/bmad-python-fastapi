@@ -1,16 +1,18 @@
 # ADR-004: CI/CD and HTTPS preview deployment
 
-**Status:** Accepted  
+**Status:** Accepted — **v1 implemented** (2026-05-22); Phase 3 (Neon) deferred  
 **Date:** 2026-05-22  
-**Scope:** Continuous integration on GitHub Actions; manual preview deployment to Render with a single HTTPS origin. PostgreSQL (Neon) persistence is planned but deferred after first CI ship. Authorization, split-origin SPA/API, and automatic deploy-on-every-push are out of scope for v1 of this ADR.  
+**Preview:** https://bmad-python-fastapi.onrender.com/  
+**Scope:** Continuous integration on GitHub Actions; manual preview deployment to Render with a single HTTPS origin. PostgreSQL (Neon) persistence is deferred. Authorization, split-origin SPA/API, and automatic deploy-on-every-push are out of scope for v1 of this ADR.  
 **Discussion:** Brainstorming session 2026-05-22 (CI/CD, one URL, free tier, persistence).
 
 ## Context
 
-The Notes API project (FastAPI + SQLite locally + React/Vite UI + JWT auth per ADR-003) is mature enough for repeatable checks and a public demo URL. Today:
+The Notes API project (FastAPI + SQLite locally + React/Vite UI + JWT auth per ADR-003) is mature enough for repeatable checks and a public demo URL. **v1 shipped:**
 
-- No GitHub Actions workflows.
-- Local dev uses Vite on `http://127.0.0.1:5173` proxying `/notes` and `/auth` to Uvicorn on port 8000.
+- GitHub Actions CI on push/PR to `main` (pytest, frontend lint/build, Playwright smoke).
+- Preview on Render: https://bmad-python-fastapi.onrender.com/ (Docker: nginx + static UI + Uvicorn; manual deploy).
+- Local dev still uses Vite on `http://127.0.0.1:5173` proxying `/notes` and `/auth` to Uvicorn on port 8000.
 - Production-style hosting is documented in `project-context.md` as reverse proxy for `/notes` and `/auth` on the **same origin** as the static UI; CORS is not implemented.
 - Demo persistence on ephemeral container disk (SQLite file) is unreliable across redeploys; managed Postgres is the intended fix when preview goes live with durable data.
 
@@ -71,7 +73,7 @@ CI is not a fourth “product” environment users visit; it is an ephemeral val
 - Playwright E2E: login → notes CRUD against live API (see `deferred-work.md`).
 - Post-deploy smoke (`GET /health`, `POST /auth/login`) in CD workflow.
 - Auto-deploy on green `main` merge.
-- `psycopg` (or equivalent) dependency and migration compatibility review for Postgres.
+- Neon Phase 3: set `DATABASE_URL` on Render (`psycopg` already in `requirements.txt`).
 - Rate limiting on public preview; custom domain on Render.
 
 ## References
@@ -84,6 +86,6 @@ CI is not a fourth “product” environment users visit; it is an ephemeral val
 
 | Phase | Status |
 |-------|--------|
-| 1 — GitHub Actions CI | Workflow in repo; confirm green on GitHub after push |
-| 2 — Render manual deploy (Docker + nginx) | Docker/nginx in repo; operator deploy on Render |
-| 3 — Neon Postgres on preview | `psycopg` + docs in repo; set `DATABASE_URL` on Render |
+| 1 — GitHub Actions CI | **Complete** — green on `main`; `actions/checkout@v6`, `setup-python@v6`, `setup-node@v5`, Node 24 for frontend |
+| 2 — Render manual deploy (Docker + nginx) | **Complete** — https://bmad-python-fastapi.onrender.com/ |
+| 3 — Neon Postgres on preview | **Deferred** — optional follow-up; see `deferred-work.md` |

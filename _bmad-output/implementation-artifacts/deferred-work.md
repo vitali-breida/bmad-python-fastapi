@@ -3,11 +3,19 @@
 ## CI/CD and preview (ADR-004)
 
 **ADR:** `../planning-artifacts/adr/adr-004-ci-cd-and-preview-deployment.md`  
-**Phased plan:** `plan-ci-cd-phases.md` (Phase 1 CI → Phase 2 Render → Phase 3 Neon).
+**Phased plan:** `plan-ci-cd-phases.md`  
+**Preview (v1):** https://bmad-python-fastapi.onrender.com/
 
-- Phase 1–3 implementation — not started until explicitly requested.
-- Playwright login → notes CRUD on live API — overlaps item below; useful before/after Phase 2.
-- Post-deploy smoke, auto-deploy on `main`, Postgres for local dev — see plan backlog.
+**v1 complete (2026-05-22):** Phase 1 CI + Phase 2 Render manual deploy. ADR-004 closed for now unless a backlog item is picked up.
+
+**Deferred (Phase 3 and backlog):**
+
+- **Neon Postgres** on Render — set `DATABASE_URL`; notes survive redeploy (`psycopg` already in repo).
+- Playwright login → notes CRUD on live API (CI or against preview).
+- Post-deploy smoke in workflow (`curl /health`, login after Render deploy).
+- Auto-deploy on `main` merge.
+- Postgres for local dev (optional; local stays SQLite).
+- Rate limiting on public preview; custom domain on Render.
 
 ## ADR-003 edge-case follow-up (consolidated)
 
