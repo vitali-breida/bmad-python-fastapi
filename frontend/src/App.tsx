@@ -19,7 +19,9 @@ export default function App() {
     () => getAccessToken() !== null,
   );
   const [notes, setNotes] = useState<Note[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(
+    () => getAccessToken() !== null,
+  );
   const [saving, setSaving] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -35,7 +37,6 @@ export default function App() {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      setLoading(false);
       return;
     }
 
