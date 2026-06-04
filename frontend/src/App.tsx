@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { clearAccessToken, getAccessToken, login } from "./api/auth";
 import { setAuthHandlers } from "./api/client";
 import type { FieldErrors } from "./api/errors";
+import { BuildInfo } from "./components/BuildInfo";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import { LoginForm } from "./components/LoginForm";
 import { NoteForm } from "./components/NoteForm";
@@ -146,7 +147,10 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50" data-testid="notes-app">
+    <div
+      className="flex min-h-screen flex-col bg-gray-50"
+      data-testid="notes-app"
+    >
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-6">
           <h1 className="text-2xl font-semibold text-gray-900">Notes</h1>
@@ -160,7 +164,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 py-8">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
         {displayError ? (
           <p className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
             {displayError}
@@ -211,6 +215,10 @@ export default function App() {
           onCancel={() => setPendingDelete(null)}
         />
       ) : null}
+
+      <footer className="border-t border-gray-200 bg-white px-4 py-3">
+        <BuildInfo />
+      </footer>
     </div>
   );
 }

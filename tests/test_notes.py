@@ -1,10 +1,14 @@
 from fastapi.testclient import TestClient
 
+from app.version import get_product_version
+
 
 def test_health(client: TestClient) -> None:
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    body = response.json()
+    assert body["status"] == "ok"
+    assert body["version"] == get_product_version()
 
 
 def test_notes_crud_flow(client: TestClient) -> None:

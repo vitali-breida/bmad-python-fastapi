@@ -32,7 +32,7 @@ context: []
 | Get note | Existing `id` | `200`, note | `404` if missing |
 | Update note | Existing `id`, partial fields | `200`, updated note | `404` if missing; `422` on invalid |
 | Delete note | Existing `id` | `204`, empty body | `404` if missing |
-| Health | GET `/health` | `200`, `{"status":"ok"}` | N/A |
+| Health | GET `/health` | `200`, `status: ok` + `version` (product semver) | N/A |
 
 </frozen-after-approval>
 

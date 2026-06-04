@@ -76,7 +76,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **`get_current_user`:** verify JWT (`sub`, `exp`), then load `UserRow` by id from DB; bad/non-integer `sub` or missing/inactive user → **401** (never **500**).
 - **Secrets:** `SECRET_KEY` required for JWT; loaded from env (`.env` via `python-dotenv` in `app/auth/config.py`). `INITIAL_ADMIN_PASSWORD` required for Alembic `003` seed only — Alembic does **not** auto-load `.env`.
 - **Bootstrap:** seed user `admin` in migration `003_add_users_table` (idempotent); no `POST /auth/register` in v1.
-- **API version:** `0.4.0` when auth ships; breaking change: all `/notes` need `Authorization: Bearer`.
+- **Product version:** single semver in root **`VERSION`** (ADR-006); `app/version.py` resolves via `APP_VERSION` env or file; OpenAPI `info.version` and `GET /health` include `version`; UI footer shows `v{semver}` via build-time `VITE_APP_VERSION`. Bump only `VERSION` (+ mirror `frontend/package.json`, `CHANGELOG.md`).
 - **Out of scope (authn v1):** RBAC/403, `owner_id` on notes, refresh tokens, register endpoint — see authz follow-up ADR.
 
 ### Frontend Rules
@@ -103,7 +103,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Migration tests: separate file (`test_migrations.py`); temp file DB + `alembic.command.upgrade`; assert row preservation and nullable `updated_at` after upgrade.
 - Assert `updated_at is None` after create, non-null after PUT update.
 - Run API tests: `python -m pytest` from project root.
-- Frontend E2E: `cd frontend && npm run test:e2e` — smoke loads **login** shell (`login-app`); API need not run for current smoke spec.
+- Frontend E2E: `cd frontend && npm run test:e2e` — Playwright starts API (`scripts/e2e-api.sh`) + Vite; asserts `build-info` on login and after `admin` sign-in (`notes-app`). CI sets `SECRET_KEY` + `INITIAL_ADMIN_PASSWORD` for Alembic seed.
 - Do not commit `frontend/node_modules/`, `frontend/dist/`, `frontend/test-results/`, or `frontend/playwright-report/`.
 
 ### Code Quality & Style Rules
@@ -123,7 +123,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Revision chain: `001_baseline_notes` → `002_add_notes_updated_at` → `003_add_users_table` (revision id = filename stem).
 - Out of scope unless user asks: authz/RBAC, PostgreSQL swap (local dev), pagination, multi-worker SQLite, production UI hosting/CORS.
 - **CI/CD (ADR-004 v1 — done):** CI on `main`; preview https://bmad-python-fastapi.onrender.com/ (manual Render deploy, `Dockerfile` + `deploy/nginx.conf.template`). Phase 3 Neon deferred — see `deferred-work.md`.
-- Planning context: ADRs in `_bmad-output/planning-artifacts/adr/` (ADR-003 authn, ADR-004 CI/CD); specs in `_bmad-output/implementation-artifacts/`.
+- Planning context: ADRs in `_bmad-output/planning-artifacts/adr/` (ADR-003 authn, ADR-004 CI/CD, ADR-005 TanStack Query, ADR-006 versioning); specs in `_bmad-output/implementation-artifacts/`.
 
 ### Critical Don't-Miss Rules
 
@@ -134,7 +134,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **Do not** use async SQLAlchemy/session without a project-wide migration to async endpoints and tests.
 - **Do not** rely on `create_all` alone for team schema—always ship an Alembic revision for column/table changes.
 - When adding columns: update `db_models.py`, Pydantic `Note` if exposed, `store` mapping, **and** a new migration; keep baseline/alter split for teaching migrations.
-- `GET /health` must remain lightweight `{"status": "ok"}` for smoke checks.
+- `GET /health` must remain lightweight for smoke checks: **`status: ok` required**; may include additive **`version`** (product semver from root `VERSION`, ADR-006). Probes and tests must not require the body to be exactly `{"status":"ok"}` only.
 - **Do not** leave Vite template files (`App.css`, default logos, social icons) in `frontend/src` or `frontend/public`.
 - **Do not** add `fetch` calls with absolute API URLs in frontend — rely on proxy (dev) or deployment proxy (prod); protect `/notes` calls must use `authFetch`, not raw `fetch`.
 - **Do not** change Playwright host to `localhost` while Vite binds `127.0.0.1` — causes E2E connection failures on some systems.
@@ -157,4 +157,4 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Review quarterly for outdated rules.
 - Remove rules that become obvious over time.
 
-Last Updated: 2026-05-21
+Last Updated: 2026-06-04

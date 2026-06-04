@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ApiError } from "../api/errors";
+import { BuildInfo } from "./BuildInfo";
 
 type LoginFormProps = {
   onLogin: (username: string, password: string) => Promise<void>;
@@ -31,8 +32,11 @@ export function LoginForm({ onLogin }: LoginFormProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50" data-testid="login-app">
-      <main className="mx-auto flex max-w-md flex-col px-4 py-16">
+    <div
+      className="flex min-h-screen flex-col bg-gray-50"
+      data-testid="login-app"
+    >
+      <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 py-16">
         <h1 className="text-2xl font-semibold text-gray-900">Sign in</h1>
         <p className="mt-2 text-sm text-gray-600">
           Username is case-sensitive (e.g. <code className="font-mono">admin</code>).
@@ -90,6 +94,10 @@ export function LoginForm({ onLogin }: LoginFormProps) {
           </button>
         </form>
       </main>
+
+      <footer className="border-t border-gray-200 bg-white px-4 py-3">
+        <BuildInfo />
+      </footer>
     </div>
   );
 }

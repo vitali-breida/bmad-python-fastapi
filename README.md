@@ -34,7 +34,25 @@ Use a **single worker** with the default SQLite file (see ADR in `_bmad-output/p
 
 - API: http://127.0.0.1:8000
 - Interactive docs: http://127.0.0.1:8000/docs
-- Health: http://127.0.0.1:8000/health
+- Health: http://127.0.0.1:8000/health — returns `status` and product `version` (see [Product version](#product-version))
+
+## Product version
+
+The **single product semver** lives in the root [`VERSION`](VERSION) file (plain text, one line, no `v` prefix). That is the only manual bump point for releases (ADR-006).
+
+| Where | What you see |
+|-------|----------------|
+| Web UI footer | `v0.4.0` on the login screen and Notes home (bottom of page) |
+| API | `GET /health` → `{"status":"ok","version":"0.4.0"}`; OpenAPI `info.version` matches |
+| Release notes | [`CHANGELOG.md`](CHANGELOG.md); deploy policy in [`docs/releases/compatibility.md`](docs/releases/compatibility.md) |
+
+**Bump a release:** edit `VERSION`, add a section to `CHANGELOG.md`, mirror `frontend/package.json` `version`, rebuild the Docker image with build-args from `VERSION` (below).
+
+```powershell
+curl http://127.0.0.1:8000/health
+```
+
+Local Vite dev reads root `VERSION` via `vite.config.ts` (`VITE_APP_VERSION` at build). Docker sets `APP_VERSION` on the API container and `VITE_APP_VERSION` when building the frontend stage.
 
 ## Web UI (React)
 
@@ -69,20 +87,24 @@ npm run lint
 npm run build
 ```
 
-### Frontend E2E smoke test (Playwright)
+### Frontend E2E (Playwright)
 
-Starts the Vite dev server automatically. The API does not need to be running for the smoke test (it only checks that the app shell loads).
+Starts the API (`scripts/e2e-api.sh`: migrations + Uvicorn on port 8000) and the Vite dev server automatically. Requires `INITIAL_ADMIN_PASSWORD` in the environment (same as Alembic bootstrap — use your `.env` value locally).
 
 ```powershell
 cd frontend
+$env:INITIAL_ADMIN_PASSWORD = "change-me-local-only"
 npm run test:e2e
 ```
 
-CI-style run (retries, fresh dev server — same as GitHub Actions):
+Asserts the version footer (`build-info`) on the login screen and after signing in as `admin`.
+
+CI-style run (retries, fresh servers — same as GitHub Actions):
 
 ```powershell
 cd frontend
 $env:CI = "true"
+$env:INITIAL_ADMIN_PASSWORD = "e2e-ci-admin-password"
 npm run test:e2e
 ```
 
@@ -97,7 +119,8 @@ From the project root (`.env` must exist — copy from `.env.example`; needs `SE
 ```powershell
 cd c:\Projects\bmad-python-fastapi
 
-docker build -t notes-app:local .
+$version = (Get-Content VERSION -Raw).Trim()
+docker build -t notes-app:local --build-arg "APP_VERSION=$version" --build-arg "VITE_APP_VERSION=$version" .
 
 docker run --rm -p 10000:10000 --env-file .env -v notes-sqlite:/app notes-app:local
 ```
@@ -190,7 +213,7 @@ On every push and pull request to `main`, GitHub Actions runs three jobs (see [`
 |-----|--------|
 | `backend` | `python -m pytest` (Python 3.11) |
 | `frontend` | `npm run lint`, `npm run build` (Node 24) |
-| `e2e` | Playwright smoke (`CI=true`; Vite dev server only) |
+| `e2e` | Playwright (`CI=true`; API + Vite; version footer on login and after sign-in) |
 
 No repository secrets are required for CI.
 
