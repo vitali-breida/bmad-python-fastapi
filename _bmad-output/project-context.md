@@ -81,7 +81,8 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 ### Frontend Rules
 
-- **Layout:** `frontend/src/` — `App.tsx` (state + handlers), `api/` (fetch + errors), `components/`, `types/`.
+- **Layout:** `frontend/src/` — `App.tsx` (auth + UI state + wires hooks), `api/` (fetch + errors), `hooks/` (TanStack Query), `query/` (`client.ts`, `keys.ts`, `errors.ts`), `components/`, `types/`.
+- **State:** Server/async data (notes list, mutations) → **TanStack Query** (`useQuery` / `useMutation`, `queryKeys`, invalidate on write). Form, selection, dialogs, `isAuthenticated` → local **`useState`** in `App.tsx`. Pattern: `api/` + `hooks/` + `query/keys.ts`.
 - **API client:** relative paths only (`/notes`, `/auth/login`, `/auth/me`); use `authFetch` in `api/client.ts` for Bearer + 401 → clear token. Login uses plain `fetch` + `application/x-www-form-urlencoded`.
 - **Vite proxy:** `vite.config.ts` forwards `/notes` and `/auth` → `http://127.0.0.1:8000`. Do not hardcode `:8000` in TS.
 - **Auth UI:** login gate in `App.tsx`; token in `sessionStorage` (`access_token`); logout clears storage (no server logout). Optional hint: username is case-sensitive.
@@ -91,7 +92,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **Styling:** Tailwind utility classes only; no leftover Vite template CSS/assets.
 - **Dev server:** `host: "127.0.0.1"`, `port: 5173`, `strictPort: true`; Playwright `baseURL` / `webServer.url` must use the same host (`127.0.0.1`, not `localhost`).
 - **Production:** Static build needs reverse proxy for `/notes` **and** `/auth` (or equivalent); no CORS on API unless explicitly added.
-- **Out of scope unless user asks:** React Router, state library, full CRUD E2E against live API with real login.
+- **Out of scope unless user asks:** React Router, global client state library (Redux/Zustand), full CRUD E2E against live API with real login. See ADR-005 for TanStack Query server state.
 
 ### Testing Rules
 
@@ -108,7 +109,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 ### Code Quality & Style Rules
 
 - Backend layout: `app/main.py`, `app/routers/` (`notes.py`, `auth.py`), `app/auth/`, `app/store.py`, `app/models.py`, `app/db_models.py`, `app/database.py`, `tests/test_*.py`, `alembic/versions/`.
-- Frontend layout: `frontend/src/App.tsx`, `frontend/src/api/` (`auth.ts`, `client.ts`, `notes.ts`, `errors.ts`), `frontend/src/components/`, `frontend/e2e/`.
+- Frontend layout: `frontend/src/App.tsx`, `frontend/src/api/` (`auth.ts`, `client.ts`, `notes.ts`, `errors.ts`), `frontend/src/hooks/` (`useNotes.ts`), `frontend/src/query/` (`client.ts`, `keys.ts`, `errors.ts`), `frontend/src/components/`, `frontend/e2e/`.
 - Naming: `snake_case` modules and functions; ORM class `NoteRow`, API model `Note`; private mapper `_to_note`.
 - Minimal comments; code should be self-explanatory; update `README.md` when setup or migration flow changes.
 - No production secrets in repo (`.env` gitignored; `.env.example` placeholders only). Rate limiting / CORS for split origins out of scope unless requested.

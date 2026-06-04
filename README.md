@@ -40,6 +40,10 @@ Use a **single worker** with the default SQLite file (see ADR in `_bmad-output/p
 
 The `frontend/` app is a Vite + React + TypeScript + Tailwind SPA. In development it proxies `/notes` and `/auth` to the API. Sign in stores the JWT in `sessionStorage` (see ADR-003 security notes on XSS).
 
+**Server state** (notes list, create/update/delete) uses [**TanStack Query**](https://tanstack.com/query) (ADR-005): `useQuery` / `useMutation`, shared `queryKeys`, `invalidateQueries` after writes. **UI state** (form, selection, login gate, dialogs) stays in React `useState` in `App.tsx`. React Query DevTools load in dev only (`npm run dev`).
+
+Layout: `frontend/src/api/` (fetch) → `hooks/useNotes.ts` → `query/` (`client.ts`, `keys.ts`, `errors.ts`). Plan: `_bmad-output/implementation-artifacts/plan-tanstack-query-phases.md`.
+
 **Terminal 1 — API** (from project root, venv active):
 
 ```powershell
@@ -56,6 +60,15 @@ npm run dev
 
 Open http://127.0.0.1:5173 — create, edit, and delete notes in the browser.
 
+### Frontend checks
+
+From `frontend/`:
+
+```powershell
+npm run lint
+npm run build
+```
+
 ### Frontend E2E smoke test (Playwright)
 
 Starts the Vite dev server automatically. The API does not need to be running for the smoke test (it only checks that the app shell loads).
@@ -64,6 +77,38 @@ Starts the Vite dev server automatically. The API does not need to be running fo
 cd frontend
 npm run test:e2e
 ```
+
+CI-style run (retries, fresh dev server — same as GitHub Actions):
+
+```powershell
+cd frontend
+$env:CI = "true"
+npm run test:e2e
+```
+
+## Run locally with Docker
+
+Uses the same image as [preview deploy](#preview-deploy-render): nginx serves the production Vite build and proxies `/notes`, `/auth`, `/health`, and `/docs` to Uvicorn inside the container. Good for checking **production-like** behavior; for day-to-day UI work with hot reload and Query DevTools, use [Web UI](#web-ui-react) (venv + `npm run dev`) instead.
+
+**Prerequisites:** [Docker](https://www.docker.com/) (e.g. Docker Desktop on Windows).
+
+From the project root (`.env` must exist — copy from `.env.example`; needs `SECRET_KEY` and `INITIAL_ADMIN_PASSWORD`):
+
+```powershell
+cd c:\Projects\bmad-python-fastapi
+
+docker build -t notes-app:local .
+
+docker run --rm -p 10000:10000 --env-file .env -v notes-sqlite:/app notes-app:local
+```
+
+- App: http://127.0.0.1:10000  
+- Sign in: `admin` + password from `INITIAL_ADMIN_PASSWORD` in `.env`  
+- Health: http://127.0.0.1:10000/health  
+
+The named volume `notes-sqlite` keeps `notes.db` across container restarts. To map a host file instead: `-v ${PWD}/notes.db:/app/notes.db` (create an empty file first or let the entrypoint create the DB on first run).
+
+To use another host port: `-p 8080:10000` → http://127.0.0.1:8080
 
 ## Try the API
 
@@ -181,7 +226,12 @@ ADR-004 v1 is complete (CI + Render). Phase 3 and backlog: `_bmad-output/impleme
 
 ```
 frontend/
-  src/             # React UI (Vite, TypeScript, Tailwind)
+  src/
+    api/           # authFetch, notes API, ApiError
+    hooks/         # useNotesQuery, note mutations (TanStack Query)
+    query/         # QueryClient, keys, mapApiError
+    components/
+    App.tsx        # auth + UI state; wires hooks
   e2e/             # Playwright smoke tests
 app/
   main.py          # FastAPI app
@@ -201,7 +251,16 @@ tests/
   test_migrations.py
 ```
 
+## Architecture notes
+
+| Topic | Doc |
+|-------|-----|
+| JWT auth | `_bmad-output/planning-artifacts/adr/adr-003-stateless-jwt-authentication.md` |
+| CI / Render preview | `_bmad-output/planning-artifacts/adr/adr-004-ci-cd-and-preview-deployment.md` |
+| TanStack Query (frontend server state) | `_bmad-output/planning-artifacts/adr/adr-005-frontend-tanstack-query-server-state.md` |
+
 ## Next learning steps
 
 - API versioning or pagination on `GET /notes`
 - PostgreSQL swap (same patterns, different `DATABASE_URL`)
+- Deferred frontend: optimistic Query updates, full CRUD E2E with live API (see TanStack Query plan backlog)

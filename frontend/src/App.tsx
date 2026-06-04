@@ -1,13 +1,20 @@
 import { useEffect, useState } from "react";
 import { clearAccessToken, getAccessToken, login } from "./api/auth";
 import { setAuthHandlers } from "./api/client";
-import { ApiError } from "./api/errors";
 import type { FieldErrors } from "./api/errors";
-import * as notesApi from "./api/notes";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import { LoginForm } from "./components/LoginForm";
 import { NoteForm } from "./components/NoteForm";
 import { NoteList } from "./components/NoteList";
+import {
+  useCreateNote,
+  useDeleteNote,
+  useNotesQuery,
+  useUpdateNote,
+} from "./hooks/useNotes";
+import { queryClient } from "./query/client";
+import { applyMappedError, mapApiError } from "./query/errors";
+import { queryKeys } from "./query/keys";
 import type { Note } from "./types/note";
 
 function emptyForm() {
@@ -18,81 +25,54 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(
     () => getAccessToken() !== null,
   );
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [loading, setLoading] = useState(
-    () => getAccessToken() !== null,
-  );
-  const [saving, setSaving] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Note | null>(null);
 
+  const {
+    data: notes = [],
+    isPending: loading,
+    isError,
+    error: notesError,
+  } = useNotesQuery(isAuthenticated);
+
+  const createNote = useCreateNote();
+  const updateNote = useUpdateNote();
+  const deleteNote = useDeleteNote();
+  const saving = createNote.isPending || updateNote.isPending;
+
+  const listError = isError
+    ? (mapApiError(notesError, "Failed to load notes").globalMessage ?? null)
+    : null;
+  const displayError = globalError ?? listError;
+
+  const resetAuthSession = () => {
+    setIsAuthenticated(false);
+    queryClient.removeQueries({ queryKey: queryKeys.notes.all });
+    setPendingDelete(null);
+    setGlobalError(null);
+  };
+
   useEffect(() => {
     setAuthHandlers({
-      onUnauthorized: () => setIsAuthenticated(false),
+      onUnauthorized: resetAuthSession,
     });
   }, []);
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      return;
-    }
-
-    let cancelled = false;
-
-    async function loadNotes() {
-      setLoading(true);
-      try {
-        const data = await notesApi.listNotes();
-        if (!cancelled) {
-          setNotes(data);
-          setGlobalError(null);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          if (err instanceof ApiError && err.status === 401) {
-            return;
-          }
-          const message =
-            err instanceof TypeError
-              ? "Cannot reach the API. Is uvicorn running on port 8000?"
-              : err instanceof ApiError
-                ? err.message
-                : "Failed to load notes";
-          setGlobalError(message);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    void loadNotes();
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthenticated]);
 
   const handleLogin = async (username: string, password: string) => {
     await login(username, password);
     setIsAuthenticated(true);
-    setNotes([]);
     setEditingId(null);
     setForm(emptyForm());
     setFieldErrors({});
     setGlobalError(null);
-    setLoading(true);
   };
 
   const handleLogout = () => {
     clearAccessToken();
-    setIsAuthenticated(false);
-    setNotes([]);
-    setPendingDelete(null);
-    setGlobalError(null);
+    resetAuthSession();
   };
 
   if (!isAuthenticated) {
@@ -113,75 +93,56 @@ export default function App() {
     setGlobalError(null);
   };
 
-  const handleSubmit = async () => {
+  const handleMutationError = (err: unknown, fallback: string) => {
+    applyMappedError(
+      mapApiError(err, fallback),
+      setGlobalError,
+      setFieldErrors,
+    );
+  };
+
+  const handleSubmit = () => {
     const trimmedTitle = form.title.trim();
     if (!trimmedTitle) {
       setFieldErrors({ title: "Title is required" });
       return;
     }
 
-    setSaving(true);
     setFieldErrors({});
     setGlobalError(null);
-    try {
-      if (editingId === null) {
-        const created = await notesApi.createNote({
-          title: trimmedTitle,
-          body: form.body,
-        });
-        setNotes((prev) => [...prev, created]);
-        selectNote(created);
-      } else {
-        const updated = await notesApi.updateNote(editingId, {
-          title: trimmedTitle,
-          body: form.body,
-        });
-        setNotes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
-        selectNote(updated);
-      }
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        return;
-      }
-      if (err instanceof ApiError) {
-        if (Object.keys(err.fieldErrors).length > 0) {
-          setFieldErrors(err.fieldErrors);
-        } else {
-          setGlobalError(err.message);
-        }
-      } else if (err instanceof TypeError) {
-        setGlobalError("Cannot reach the API. Is uvicorn running on port 8000?");
-      } else {
-        setGlobalError("Failed to save note");
-      }
-    } finally {
-      setSaving(false);
+
+    const payload = { title: trimmedTitle, body: form.body };
+
+    if (editingId === null) {
+      createNote.mutate(payload, {
+        onSuccess: (created) => selectNote(created),
+        onError: (err) => handleMutationError(err, "Failed to save note"),
+      });
+    } else {
+      updateNote.mutate(
+        { id: editingId, payload },
+        {
+          onSuccess: (updated) => selectNote(updated),
+          onError: (err) => handleMutationError(err, "Failed to save note"),
+        },
+      );
     }
   };
 
-  const confirmDelete = async () => {
-    if (!pendingDelete) return;
+  const confirmDelete = () => {
+    if (!pendingDelete || deleteNote.isPending) return;
     const id = pendingDelete.id;
     setGlobalError(null);
-    try {
-      await notesApi.deleteNote(id);
-      setPendingDelete(null);
-      setNotes((prev) => prev.filter((n) => n.id !== id));
-      if (editingId === id) {
-        startNewNote();
-      }
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        return;
-      }
-      const message =
-        err instanceof TypeError
-          ? "Cannot reach the API. Is uvicorn running on port 8000?"
-          : err instanceof ApiError
-            ? err.message
-            : "Failed to delete note";
-      setGlobalError(message);
-    }
+
+    deleteNote.mutate(id, {
+      onSuccess: () => {
+        setPendingDelete(null);
+        if (editingId === id) {
+          startNewNote();
+        }
+      },
+      onError: (err) => handleMutationError(err, "Failed to delete note"),
+    });
   };
 
   return (
@@ -200,9 +161,9 @@ export default function App() {
       </header>
 
       <main className="mx-auto max-w-5xl px-4 py-8">
-        {globalError ? (
+        {displayError ? (
           <p className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
-            {globalError}
+            {displayError}
           </p>
         ) : null}
 
@@ -232,7 +193,7 @@ export default function App() {
                 saving={saving}
                 onTitleChange={(title) => setForm((f) => ({ ...f, title }))}
                 onBodyChange={(body) => setForm((f) => ({ ...f, body }))}
-                onSubmit={() => void handleSubmit()}
+                onSubmit={handleSubmit}
                 onNew={startNewNote}
               />
             </section>
@@ -244,7 +205,9 @@ export default function App() {
         <ConfirmDialog
           title="Delete note?"
           message={`Delete "${pendingDelete.title}"? This cannot be undone.`}
-          onConfirm={() => void confirmDelete()}
+          confirmLabel={deleteNote.isPending ? "Deleting…" : "Delete"}
+          confirmDisabled={deleteNote.isPending}
+          onConfirm={confirmDelete}
           onCancel={() => setPendingDelete(null)}
         />
       ) : null}
