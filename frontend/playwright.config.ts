@@ -5,6 +5,13 @@ const apiServerCommand =
     ? "powershell -NoProfile -ExecutionPolicy Bypass -File ../scripts/e2e-api.ps1"
     : "bash ../scripts/e2e-api.sh";
 
+const e2eApiEnv = {
+  SECRET_KEY:
+    process.env.SECRET_KEY ?? "test-secret-key-for-e2e-local-only-not-production",
+  INITIAL_ADMIN_PASSWORD:
+    process.env.INITIAL_ADMIN_PASSWORD ?? "change-me-local-only",
+};
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
@@ -23,6 +30,7 @@ export default defineConfig({
       url: "http://127.0.0.1:8000/health",
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
+      env: e2eApiEnv,
     },
     {
       command: "npm run dev",

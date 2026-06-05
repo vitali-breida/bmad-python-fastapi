@@ -81,11 +81,11 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 ### Frontend Rules
 
-- **Layout:** `frontend/src/` — `App.tsx` (auth + UI state + wires hooks), `api/` (fetch + errors), `hooks/` (TanStack Query), `query/` (`client.ts`, `keys.ts`, `errors.ts`), `components/`, `types/`.
-- **State:** Server/async data (notes list, mutations) → **TanStack Query** (`useQuery` / `useMutation`, `queryKeys`, invalidate on write). Form, selection, dialogs, `isAuthenticated` → local **`useState`** in `App.tsx`. Pattern: `api/` + `hooks/` + `query/keys.ts`.
+- **Layout:** `frontend/src/` — `App.tsx` (session gate + UI state + wires hooks), `api/` (fetch + errors), `hooks/` (`useAuth.ts`, `useNotes.ts`), `query/` (`client.ts`, `keys.ts`, `errors.ts`), `components/`, `types/` (`note.ts`, `user.ts`).
+- **State:** Server/async data → **TanStack Query** (`useQuery` / `useMutation`, hierarchical `authKeys` / `notesKeys`, optimistic mutations, prefetch). Auth session via `useMeQuery` + `useLoginMutation`; notes list/detail via `useNotesQuery` / `useNoteQuery`. Form, selection, dialogs → local **`useState`** in `App.tsx` (not in Query cache). Pattern: `api/` + `hooks/` + `query/keys.ts`.
 - **API client:** relative paths only (`/notes`, `/auth/login`, `/auth/me`); use `authFetch` in `api/client.ts` for Bearer + 401 → clear token. Login uses plain `fetch` + `application/x-www-form-urlencoded`.
 - **Vite proxy:** `vite.config.ts` forwards `/notes` and `/auth` → `http://127.0.0.1:8000`. Do not hardcode `:8000` in TS.
-- **Auth UI:** login gate in `App.tsx`; token in `sessionStorage` (`access_token`); logout clears storage (no server logout). Optional hint: username is case-sensitive.
+- **Auth UI:** session resolution in `App.tsx` from `useMeQuery` (Unauthenticated / Resolving / Authenticated / Session expired / Session check failed); token in `sessionStorage` (`access_token`); login via `useLoginMutation`; logout clears storage + `removeQueries` on `authKeys.all` and `notesKeys.all` (no server logout). Optional hint: username is case-sensitive.
 - **Types:** Mirror backend Pydantic schemas in `types/note.ts` — `title` max 200, `body` max 10_000; trim title before create/update.
 - **Errors:** Use `ApiError` + `apiErrorFromResponse()` for FastAPI 422 `detail` arrays; map `loc` to `title`/`body` field errors.
 - **Components:** Presentational only — props in, callbacks out; no direct `fetch` in components.
@@ -109,7 +109,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 ### Code Quality & Style Rules
 
 - Backend layout: `app/main.py`, `app/routers/` (`notes.py`, `auth.py`), `app/auth/`, `app/store.py`, `app/models.py`, `app/db_models.py`, `app/database.py`, `tests/test_*.py`, `alembic/versions/`.
-- Frontend layout: `frontend/src/App.tsx`, `frontend/src/api/` (`auth.ts`, `client.ts`, `notes.ts`, `errors.ts`), `frontend/src/hooks/` (`useNotes.ts`), `frontend/src/query/` (`client.ts`, `keys.ts`, `errors.ts`), `frontend/src/components/`, `frontend/e2e/`.
+- Frontend layout: `frontend/src/App.tsx`, `frontend/src/api/` (`auth.ts`, `client.ts`, `notes.ts`, `errors.ts`), `frontend/src/hooks/` (`useAuth.ts`, `useNotes.ts`), `frontend/src/query/` (`client.ts`, `keys.ts`, `errors.ts`), `frontend/src/types/` (`note.ts`, `user.ts`), `frontend/src/components/`, `frontend/e2e/`.
 - Naming: `snake_case` modules and functions; ORM class `NoteRow`, API model `Note`; private mapper `_to_note`.
 - Minimal comments; code should be self-explanatory; update `README.md` when setup or migration flow changes.
 - No production secrets in repo (`.env` gitignored; `.env.example` placeholders only). Rate limiting / CORS for split origins out of scope unless requested.
@@ -123,7 +123,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Revision chain: `001_baseline_notes` → `002_add_notes_updated_at` → `003_add_users_table` (revision id = filename stem).
 - Out of scope unless user asks: authz/RBAC, PostgreSQL swap (local dev), pagination, multi-worker SQLite, production UI hosting/CORS.
 - **CI/CD (ADR-004 v1 — done):** CI on `main`; preview https://bmad-python-fastapi.onrender.com/ (manual Render deploy, `Dockerfile` + `deploy/nginx.conf.template`). Phase 3 Neon deferred — see `deferred-work.md`.
-- Planning context: ADRs in `_bmad-output/planning-artifacts/adr/` (ADR-003 authn, ADR-004 CI/CD, ADR-005 TanStack Query, ADR-006 versioning); specs in `_bmad-output/implementation-artifacts/`.
+- Planning context: ADRs in `_bmad-output/planning-artifacts/adr/` (ADR-003 authn, ADR-004 CI/CD, ADR-005 TanStack Query v1, ADR-006 versioning, ADR-007 TanStack Query v2 patterns — **implemented**); specs in `_bmad-output/implementation-artifacts/`.
 
 ### Critical Don't-Miss Rules
 
@@ -157,4 +157,4 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Review quarterly for outdated rules.
 - Remove rules that become obvious over time.
 
-Last Updated: 2026-06-04
+Last Updated: 2026-06-05

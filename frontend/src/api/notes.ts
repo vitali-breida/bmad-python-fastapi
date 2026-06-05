@@ -16,6 +16,11 @@ export async function listNotes(): Promise<Note[]> {
   return parseJson<Note[]>(res);
 }
 
+export async function getNote(id: number): Promise<Note> {
+  const res = await authFetch(`${BASE}/${id}`);
+  return parseJson<Note>(res);
+}
+
 export async function createNote(payload: NoteCreate): Promise<Note> {
   const res = await authFetch(BASE, {
     method: "POST",

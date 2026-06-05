@@ -1,3 +1,4 @@
+import { formatUpdatedAt } from "../formatUpdatedAt";
 import type { Note } from "../types/note";
 
 type NoteListProps = {
@@ -5,9 +6,16 @@ type NoteListProps = {
   selectedId: number | null;
   onSelect: (note: Note) => void;
   onDelete: (note: Note) => void;
+  onPrefetch?: (id: number) => void;
 };
 
-export function NoteList({ notes, selectedId, onSelect, onDelete }: NoteListProps) {
+export function NoteList({
+  notes,
+  selectedId,
+  onSelect,
+  onDelete,
+  onPrefetch,
+}: NoteListProps) {
   if (notes.length === 0) {
     return (
       <p className="text-sm text-gray-500" data-testid="notes-empty">
@@ -20,6 +28,7 @@ export function NoteList({ notes, selectedId, onSelect, onDelete }: NoteListProp
     <ul className="divide-y divide-gray-200 rounded-lg border border-gray-200">
       {notes.map((note) => {
         const selected = note.id === selectedId;
+        const updatedLabel = formatUpdatedAt(note.updated_at);
         return (
           <li
             key={note.id}
@@ -30,21 +39,30 @@ export function NoteList({ notes, selectedId, onSelect, onDelete }: NoteListProp
             <button
               type="button"
               onClick={() => onSelect(note)}
+              onMouseEnter={() => onPrefetch?.(note.id)}
+              onFocus={() => onPrefetch?.(note.id)}
               className="min-w-0 flex-1 text-left"
             >
               <span className="block truncate font-medium text-gray-900">{note.title}</span>
               {note.body ? (
                 <span className="mt-0.5 block truncate text-sm text-gray-500">{note.body}</span>
               ) : null}
+              {updatedLabel ? (
+                <span className="mt-0.5 block text-xs text-gray-400">
+                  Updated {updatedLabel}
+                </span>
+              ) : null}
             </button>
-            <button
-              type="button"
-              onClick={() => onDelete(note)}
-              className="shrink-0 text-sm text-red-600 hover:text-red-800"
-              aria-label={`Delete note ${note.title}`}
-            >
-              Delete
-            </button>
+            {note.id > 0 ? (
+              <button
+                type="button"
+                onClick={() => onDelete(note)}
+                className="shrink-0 text-sm text-red-600 hover:text-red-800"
+                aria-label={`Delete note ${note.title}`}
+              >
+                Delete
+              </button>
+            ) : null}
           </li>
         );
       })}

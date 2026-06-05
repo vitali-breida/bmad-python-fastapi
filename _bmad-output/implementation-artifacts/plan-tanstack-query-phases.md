@@ -1,11 +1,11 @@
 # TanStack Query migration plan (phased)
 
-**ADR:** `../planning-artifacts/adr/adr-005-frontend-tanstack-query-server-state.md`  
-**Status:** v1 complete (2026-06-03)  
+**ADR:** `../planning-artifacts/adr/adr-005-frontend-tanstack-query-server-state.md` (v1), `../planning-artifacts/adr/adr-007-frontend-tanstack-query-v2-patterns.md` (v2)  
+**Status:** v1 complete (2026-06-03); **v2 complete** (ADR-007 implemented 2026-06-05)  
 **Baseline (historical):** `frontend/src/App.tsx` — `useEffect` + `notes` / `loading` / manual `setNotes`  
 **Implemented:** `hooks/useNotes.ts`, `query/{client,keys,errors}.ts`, `QueryClientProvider` in `main.tsx`  
 **Learning notes:** `.backup/tanstack-query-my-progress.md`, `.backup/react-state-problems-before-tanstack-query.md`  
-**Last updated:** 2026-06-03
+**Last updated:** 2026-06-05
 
 ## Summary
 
@@ -254,32 +254,174 @@ Per phase, revert the last commit for that phase. Worst case: remove Provider an
 
 ---
 
-## Deferred backlog (not blocking v1)
+## v2 phases (ADR-007)
 
-| Item | When |
-|------|------|
-| Optimistic updates | UX needs instant feedback before server |
-| `prefetchQuery` | React Router added |
-| `useInfiniteQuery` | Paginated API |
-| Login as `useMutation` | Refactor `LoginForm` |
-| Unit tests with `QueryClientProvider` + `renderHook` | User asks for component tests |
-| E2E: full CRUD with test user | Separate story |
+| Phase | Goal | User-visible outcome |
+|-------|------|----------------------|
+| **6** | Key hierarchy + API helpers | `authKeys` / `notesKeys`; `getMe()`, `getNote(id)` in `api/` |
+| **7** | Auth session in Query | Login via `useLoginMutation`; session from `useMeQuery`; no `isAuthenticated` state |
+| **8** | Detail + optimistic CRUD | `updated_at` visible; instant list updates; rollback on error |
+| **9** | Prefetch + docs + smoke | Hover prefetch; `project-context.md` updated; manual smoke green |
 
 ---
 
-## Suggested implementation order (one PR or small commits)
+## Phase 6 — Key hierarchy and API helpers
+
+### Scope
+
+- Replace flat `queryKeys.notes.all` with hierarchical `authKeys` + `notesKeys` in `frontend/src/query/keys.ts`.
+- Add `getMe()` to `frontend/src/api/auth.ts` (`GET /auth/me` via `authFetch`).
+- Add `getNote(id)` to `frontend/src/api/notes.ts` (`GET /notes/{id}`).
+- Add `frontend/src/types/user.ts` mirroring backend `UserRead` if not present.
+- Migrate `useNotesQuery` to `notesKeys.list()` (keep `notesKeys.all` for logout `removeQueries`).
+
+### Done when
+
+- [ ] Key factory matches ADR-007 table
+- [ ] API helpers typed and throw `ApiError` on failure
+- [ ] `npm run lint && npm run build` pass
+- [ ] No behaviour change yet (list still uses invalidate-only mutations)
+
+---
+
+## Phase 7 — Auth session (`useAuth.ts`)
+
+### Scope
+
+- Create `frontend/src/hooks/useAuth.ts`: `useMeQuery`, `useLoginMutation`.
+- `useMeQuery`: `enabled: !!getAccessToken()`, `retry: false`, `queryKey: authKeys.me()`.
+- `useLoginMutation`: `onSuccess` → `invalidateQueries({ queryKey: authKeys.me() })`.
+- `App.tsx`: remove `isAuthenticated` `useState`; implement **session resolution states** per ADR-007 § Session resolution states (Unauthenticated / Resolving / Authenticated / Session expired / Session check failed).
+- `useNotesQuery`: `enabled` only when `useMeQuery` `isSuccess` with data — not raw token.
+- `LoginForm`: wire `useLoginMutation` instead of imperative `login()` callback where practical.
+- Logout: `clearAccessToken()` + remove `authKeys.all` and `notesKeys.all` from cache.
+- **401 / `onUnauthorized`:** same cache cleanup as logout (`authKeys.all` + `notesKeys.all`) — replace v1 notes-only `removeQueries` in `resetAuthSession`.
+- Session check failed UI: global message + Retry (`meQuery.refetch()`); do not clear token.
+
+### UX parity checklist
+
+- [ ] Valid token on refresh → “Checking session…” (not login flash) → notes load
+- [ ] Invalid/expired token → login screen (401 from `/me` silent; no error banner)
+- [ ] API down on load with token → error shell + Retry; token kept; Retry succeeds when API returns
+- [ ] Login success → notes query enables and loads
+- [ ] Logout → login screen; no stale auth or notes in DevTools cache
+
+### Done when
+
+- [ ] No `isAuthenticated` state in `App.tsx`
+- [ ] `npm run lint && npm run build` pass
+- [ ] `CI=true npm run test:e2e` smoke pass
+
+---
+
+## Phase 8 — Detail query, `updated_at`, optimistic CRUD
+
+### Scope
+
+- `useNoteQuery(id)` with `enabled: id != null && id > 0` (skip optimistic temp negative ids) and `placeholderData` from list cache.
+- Show `updated_at` in `NoteList` and/or editor (formatted, locale-aware or ISO slice).
+- Optimistic `useCreateNote`, `useUpdateNote`, `useDeleteNote`:
+  - `onMutate` / snapshot / `setQueryData` / rollback / `onSettled` invalidate per ADR-007.
+- Temp negative id for optimistic create; on success replace in list cache and set `editingId` to server id.
+
+### UX parity checklist
+
+- [ ] Select note → detail available without spinner when list had the row
+- [ ] Save → list updates immediately; rolls back on simulated API error
+- [ ] Delete → row disappears immediately; rolls back on error
+- [ ] `updated_at` shown after first edit (null on create per ADR-002)
+
+### Done when
+
+- [ ] No invalidate-only mutations left (all three use optimistic lifecycle)
+- [ ] Manual smoke: create, edit, delete with DevTools showing cache patches
+
+---
+
+## Phase 9 — Prefetch, docs, verification
+
+### Scope
+
+- `prefetchNote(queryClient, id)` in `useNotes.ts`; trigger on list item hover/focus.
+- Update `_bmad-output/project-context.md` frontend rules for ADR-007.
+- Manual smoke checklist (below).
+- Mark ADR-007 implementation status table **Done**.
+
+### Manual smoke (v2)
+
+**Session (ADR-007 § Smoke scenarios — re-run at v2 sign-off):**
+
+1. Refresh with valid token → “Checking session…” → notes load (no login flash).
+2. Refresh with expired/invalid token → Resolving → `LoginForm` (401 from `/me` silent; no error banner).
+3. Stop API, reload with token in storage → Session check failed shell + **Retry**; start API → Retry → Authenticated.
+4. Login success → `useLoginMutation` → `/me` + notes load.
+
+**Cache, mutations, prefetch (phases 8–9):**
+
+5. Hover note → DevTools shows prefetched `notesKeys.detail(id)` query.
+6. Create / edit / delete — optimistic list updates; rollback on simulated API error.
+7. Logout → `authKeys` + `notesKeys` cleared in DevTools; `LoginForm` shown.
+
+**CI:**
+
+8. `npm run lint`, `npm run build`, `CI=true npm run test:e2e`.
+
+### Done when
+
+- [ ] ADR-007 compliance checklist ticked
+- [ ] `project-context.md` reflects v2 patterns
+- [ ] Plan status → **v2 complete**
+
+---
+
+## Deferred backlog (post-v2)
+
+| Item | When |
+|------|------|
+| `useInfiniteQuery` | Paginated notes API exists |
+| React Router + route-level prefetch | User asks for multi-page SPA |
+| Unit tests with `QueryClientProvider` + `renderHook` | User asks for component tests |
+| E2E: full CRUD with test user | `deferred-work.md` |
+| `persistQueryClient` / offline | Separate ADR |
+
+*v1 deferred items (optimistic, auth mutation, prefetch) moved to ADR-007 phases 7–9.*
+
+---
+
+## Suggested implementation order
+
+**v1 (complete):**
 
 1. `chore(frontend): add @tanstack/react-query` — Phase 0–1  
 2. `refactor(frontend): load notes with useQuery` — Phase 2  
 3. `refactor(frontend): note mutations with useMutation` — Phase 3  
 4. `refactor(frontend): query error helper and docs` — Phase 4–5  
 
+**v2 (ADR-007):**
+
+5. `refactor(frontend): query key hierarchy and api helpers` — Phase 6  
+6. `refactor(frontend): auth session with useMeQuery and useLoginMutation` — Phase 7  
+7. `refactor(frontend): optimistic note mutations and detail query` — Phase 8  
+8. `feat(frontend): prefetch note detail and update project-context` — Phase 9  
+
 ---
 
 ## Quick reference
+
+**v1 (current):**
 
 **Read:** `queryKey: ['notes']` → `queryFn: listNotes` → `enabled: isAuthenticated`  
 
 **Write:** `useMutation` → `onSuccess: invalidateQueries({ queryKey: ['notes'] })`  
 
 **UI:** form, `editingId`, `pendingDelete`, `isAuthenticated` stay in `useState`.
+
+**v2 (target, ADR-007):**
+
+**Auth:** `authKeys.me()` → `getMe` → `enabled: !!token`; login → `useLoginMutation` → invalidate `me`  
+
+**Read:** `notesKeys.list()` + `notesKeys.detail(id)` with `placeholderData` from list  
+
+**Write:** optimistic `onMutate` → `setQueryData` → rollback → `onSettled` invalidate  
+
+**UI:** form, `editingId`, `pendingDelete` stay in `useState`; auth gate from `useMeQuery`, not `isAuthenticated`

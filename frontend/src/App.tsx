@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { clearAccessToken, getAccessToken, login } from "./api/auth";
+import { useCallback, useLayoutEffect, useState } from "react";
+import { clearAccessToken, getAccessToken } from "./api/auth";
 import { setAuthHandlers } from "./api/client";
 import type { FieldErrors } from "./api/errors";
 import { BuildInfo } from "./components/BuildInfo";
@@ -7,15 +7,19 @@ import { ConfirmDialog } from "./components/ConfirmDialog";
 import { LoginForm } from "./components/LoginForm";
 import { NoteForm } from "./components/NoteForm";
 import { NoteList } from "./components/NoteList";
+import { useLoginMutation, useMeQuery } from "./hooks/useAuth";
 import {
+  prefetchNote,
   useCreateNote,
   useDeleteNote,
+  useNoteQuery,
   useNotesQuery,
   useUpdateNote,
 } from "./hooks/useNotes";
 import { queryClient } from "./query/client";
 import { applyMappedError, mapApiError } from "./query/errors";
-import { queryKeys } from "./query/keys";
+import { authKeys, notesKeys } from "./query/keys";
+import { formatUpdatedAt } from "./formatUpdatedAt";
 import type { Note } from "./types/note";
 
 function emptyForm() {
@@ -23,22 +27,24 @@ function emptyForm() {
 }
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    () => getAccessToken() !== null,
-  );
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Note | null>(null);
 
+  const meQuery = useMeQuery();
+  const loginMutation = useLoginMutation();
+  const notesEnabled = meQuery.isSuccess && meQuery.data != null;
+
   const {
     data: notes = [],
     isPending: loading,
     isError,
     error: notesError,
-  } = useNotesQuery(isAuthenticated);
+  } = useNotesQuery(notesEnabled);
 
+  const noteDetail = useNoteQuery(editingId);
   const createNote = useCreateNote();
   const updateNote = useUpdateNote();
   const deleteNote = useDeleteNote();
@@ -49,38 +55,102 @@ export default function App() {
     : null;
   const displayError = globalError ?? listError;
 
-  const resetAuthSession = () => {
-    setIsAuthenticated(false);
-    queryClient.removeQueries({ queryKey: queryKeys.notes.all });
-    setPendingDelete(null);
-    setGlobalError(null);
-  };
-
-  useEffect(() => {
-    setAuthHandlers({
-      onUnauthorized: resetAuthSession,
-    });
-  }, []);
-
-  const handleLogin = async (username: string, password: string) => {
-    await login(username, password);
-    setIsAuthenticated(true);
+  const resetUiState = useCallback(() => {
     setEditingId(null);
     setForm(emptyForm());
     setFieldErrors({});
     setGlobalError(null);
-  };
+    setPendingDelete(null);
+  }, []);
+
+  const resetAuthSession = useCallback(() => {
+    queryClient.removeQueries({ queryKey: authKeys.all });
+    queryClient.removeQueries({ queryKey: notesKeys.all });
+    resetUiState();
+  }, [resetUiState]);
+
+  useLayoutEffect(() => {
+    setAuthHandlers({
+      onUnauthorized: resetAuthSession,
+    });
+  }, [resetAuthSession]);
 
   const handleLogout = () => {
     clearAccessToken();
     resetAuthSession();
   };
 
-  if (!isAuthenticated) {
-    return <LoginForm onLogin={handleLogin} />;
+  const showApp = meQuery.isSuccess && meQuery.data != null;
+  const showResolving = !!getAccessToken() && meQuery.isPending;
+  const showSessionError = !!getAccessToken() && meQuery.isError;
+
+  if (showResolving) {
+    return (
+      <div
+        className="flex min-h-screen flex-col bg-gray-50"
+        data-testid="session-resolving"
+      >
+        <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-16">
+          <p className="text-sm text-gray-500">Checking session…</p>
+        </main>
+        <footer className="border-t border-gray-200 bg-white px-4 py-3">
+          <BuildInfo />
+        </footer>
+      </div>
+    );
+  }
+
+  if (showSessionError) {
+    const sessionMessage =
+      mapApiError(meQuery.error, "Session check failed").globalMessage ??
+      "Session check failed";
+    return (
+      <div
+        className="flex min-h-screen flex-col bg-gray-50"
+        data-testid="session-error"
+      >
+        <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-16">
+          <p
+            className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+            role="alert"
+          >
+            {sessionMessage}
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void meQuery.refetch()}
+              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              Retry
+            </button>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Sign out
+            </button>
+          </div>
+        </main>
+        <footer className="border-t border-gray-200 bg-white px-4 py-3">
+          <BuildInfo />
+        </footer>
+      </div>
+    );
+  }
+
+  if (!showApp) {
+    return (
+      <LoginForm
+        loginMutation={loginMutation}
+        onLoginSuccess={resetUiState}
+      />
+    );
   }
 
   const selectNote = (note: Note) => {
+    if (note.id <= 0) return;
     setEditingId(note.id);
     setForm({ title: note.title, body: note.body });
     setFieldErrors({});
@@ -133,6 +203,20 @@ export default function App() {
   const confirmDelete = () => {
     if (!pendingDelete || deleteNote.isPending) return;
     const id = pendingDelete.id;
+    if (id <= 0) {
+      const list = queryClient.getQueryData<Note[]>(notesKeys.list());
+      if (list) {
+        queryClient.setQueryData(
+          notesKeys.list(),
+          list.filter((note) => note.id !== id),
+        );
+      }
+      setPendingDelete(null);
+      if (editingId === id) {
+        startNewNote();
+      }
+      return;
+    }
     setGlobalError(null);
 
     deleteNote.mutate(id, {
@@ -145,6 +229,8 @@ export default function App() {
       onError: (err) => handleMutationError(err, "Failed to delete note"),
     });
   };
+
+  const editorUpdatedAt = formatUpdatedAt(noteDetail.data?.updated_at);
 
   return (
     <div
@@ -182,6 +268,7 @@ export default function App() {
                 selectedId={editingId}
                 onSelect={selectNote}
                 onDelete={setPendingDelete}
+                onPrefetch={(id) => prefetchNote(queryClient, id)}
               />
             </section>
 
@@ -189,6 +276,9 @@ export default function App() {
               <h2 className="mb-3 text-lg font-medium text-gray-900">
                 {editingId === null ? "New note" : "Edit note"}
               </h2>
+              {editorUpdatedAt ? (
+                <p className="mb-3 text-xs text-gray-500">Last updated {editorUpdatedAt}</p>
+              ) : null}
               <NoteForm
                 title={form.title}
                 body={form.body}

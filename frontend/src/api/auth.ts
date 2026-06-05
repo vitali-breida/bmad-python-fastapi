@@ -1,4 +1,6 @@
+import { authFetch } from "./client";
 import { apiErrorFromResponse } from "./errors";
+import type { User } from "../types/user";
 
 const TOKEN_KEY = "access_token";
 
@@ -17,6 +19,14 @@ export function setAccessToken(token: string): void {
 
 export function clearAccessToken(): void {
   sessionStorage.removeItem(TOKEN_KEY);
+}
+
+export async function getMe(): Promise<User> {
+  const res = await authFetch("/auth/me");
+  if (!res.ok) {
+    throw await apiErrorFromResponse(res);
+  }
+  return res.json() as Promise<User>;
 }
 
 export async function login(username: string, password: string): Promise<void> {

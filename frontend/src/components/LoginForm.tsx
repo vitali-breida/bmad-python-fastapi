@@ -1,34 +1,46 @@
 import { useState } from "react";
+import type { UseMutationResult } from "@tanstack/react-query";
 import { ApiError } from "../api/errors";
 import { BuildInfo } from "./BuildInfo";
 
 type LoginFormProps = {
-  onLogin: (username: string, password: string) => Promise<void>;
+  loginMutation: UseMutationResult<
+    void,
+    unknown,
+    { username: string; password: string }
+  >;
+  onLoginSuccess?: () => void;
 };
 
-export function LoginForm({ onLogin }: LoginFormProps) {
+function loginErrorMessage(err: unknown): string {
+  if (err instanceof TypeError) {
+    return "Cannot reach the API. Is uvicorn running on port 8000?";
+  }
+  if (err instanceof ApiError) {
+    return err.message;
+  }
+  return "Sign in failed";
+}
+
+export function LoginForm({ loginMutation, onLoginSuccess }: LoginFormProps) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setSubmitting(true);
-    try {
-      await onLogin(username.trim(), password);
-    } catch (err) {
-      const message =
-        err instanceof TypeError
-          ? "Cannot reach the API. Is uvicorn running on port 8000?"
-          : err instanceof ApiError
-            ? err.message
-            : "Sign in failed";
-      setError(message);
-    } finally {
-      setSubmitting(false);
-    }
+    loginMutation.mutate(
+      { username: username.trim(), password },
+      {
+        onSuccess: () => {
+          onLoginSuccess?.();
+        },
+        onError: (err) => {
+          setError(loginErrorMessage(err));
+        },
+      },
+    );
   };
 
   return (
@@ -42,7 +54,7 @@ export function LoginForm({ onLogin }: LoginFormProps) {
           Username is case-sensitive (e.g. <code className="font-mono">admin</code>).
         </p>
 
-        <form className="mt-8 space-y-4" onSubmit={(e) => void handleSubmit(e)}>
+        <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
           {error ? (
             <p
               className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
@@ -87,10 +99,10 @@ export function LoginForm({ onLogin }: LoginFormProps) {
 
           <button
             type="submit"
-            disabled={submitting}
+            disabled={loginMutation.isPending}
             className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
           >
-            {submitting ? "Signing in…" : "Sign in"}
+            {loginMutation.isPending ? "Signing in…" : "Sign in"}
           </button>
         </form>
       </main>
