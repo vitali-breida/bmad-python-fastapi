@@ -56,11 +56,22 @@ Local Vite dev reads root `VERSION` via `vite.config.ts` (`VITE_APP_VERSION` at 
 
 ## Web UI (React)
 
-The `frontend/` app is a Vite + React + TypeScript + Tailwind SPA. In development it proxies `/notes` and `/auth` to the API. Sign in stores the JWT in `sessionStorage` (see ADR-003 security notes on XSS).
+The `frontend/` app is a Vite + React + TypeScript + Tailwind multi-page SPA with **React Router** (ADR-008). In development it proxies `/notes`, `/auth`, and `/health` to the API. Sign in stores the JWT in `sessionStorage` (see ADR-003 security notes on XSS).
 
-**Server state** (notes list, create/update/delete) uses [**TanStack Query**](https://tanstack.com/query) (ADR-005): `useQuery` / `useMutation`, shared `queryKeys`, `invalidateQueries` after writes. **UI state** (form, selection, login gate, dialogs) stays in React `useState` in `App.tsx`. React Query DevTools load in dev only (`npm run dev`).
+**Routes (v1):**
 
-Layout: `frontend/src/api/` (fetch) → `hooks/useNotes.ts` → `query/` (`client.ts`, `keys.ts`, `errors.ts`). Plan: `_bmad-output/implementation-artifacts/plan-tanstack-query-phases.md`.
+| Path | Page | Access |
+|------|------|--------|
+| `/login` | Login | Public |
+| `/dashboard` | Dashboard (post-login home) | Protected |
+| `/notes` | Notes list + create form | Protected |
+| `/notes/:id` | Note detail (edit/delete) | Protected |
+| `/settings` | Profile + logout | Protected |
+| `/` | Redirect → `/dashboard` or `/login` | — |
+
+**Server state** uses [**TanStack Query**](https://tanstack.com/query) (ADR-005/007): `useQuery` / `useMutation`, shared `queryKeys`, optimistic updates, prefetch. **UI state** (forms, dialogs) stays page-local in `useState`. React Query DevTools load in dev only (`npm run dev`).
+
+Layout: `pages/` → `hooks/` → `api/` → `query/`. Router shell in `App.tsx`; shared chrome in `layouts/AppLayout.tsx`. ADR: `_bmad-output/planning-artifacts/adr/adr-008-frontend-routing-v1.md`.
 
 **Terminal 1 — API** (from project root, venv active):
 
@@ -76,7 +87,7 @@ npm install
 npm run dev
 ```
 
-Open http://127.0.0.1:5173 — create, edit, and delete notes in the browser.
+Open http://127.0.0.1:5173 — sign in lands on `/dashboard`; create notes on `/notes`, edit on `/notes/:id`.
 
 ### Frontend checks
 
@@ -97,7 +108,7 @@ $env:INITIAL_ADMIN_PASSWORD = "change-me-local-only"
 npm run test:e2e
 ```
 
-Asserts the version footer (`build-info`) on the login screen and after signing in as `admin`.
+Asserts the version footer (`build-info`) on `/login` and after signing in (lands on `/dashboard`).
 
 CI-style run (retries, fresh servers — same as GitHub Actions):
 
@@ -250,11 +261,13 @@ ADR-004 v1 is complete (CI + Render). Phase 3 and backlog: `_bmad-output/impleme
 ```
 frontend/
   src/
-    api/           # authFetch, notes API, ApiError
-    hooks/         # useNotesQuery, note mutations (TanStack Query)
+    api/           # authFetch, notes/health API, ApiError
+    hooks/         # useAuth, useNotes, useHealth (TanStack Query)
     query/         # QueryClient, keys, mapApiError
-    components/
-    App.tsx        # auth + UI state; wires hooks
+    pages/         # Login, Dashboard, NotesList, NoteDetail, Settings
+    layouts/       # AppLayout (nav, footer)
+    components/    # ProtectedRoute, NoteList, NoteForm, …
+    App.tsx        # BrowserRouter + route tree
   e2e/             # Playwright smoke tests
 app/
   main.py          # FastAPI app
@@ -281,6 +294,7 @@ tests/
 | JWT auth | `_bmad-output/planning-artifacts/adr/adr-003-stateless-jwt-authentication.md` |
 | CI / Render preview | `_bmad-output/planning-artifacts/adr/adr-004-ci-cd-and-preview-deployment.md` |
 | TanStack Query (frontend server state) | `_bmad-output/planning-artifacts/adr/adr-005-frontend-tanstack-query-server-state.md` |
+| Frontend routing (multi-page SPA) | `_bmad-output/planning-artifacts/adr/adr-008-frontend-routing-v1.md` |
 
 ## Next learning steps
 

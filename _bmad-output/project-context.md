@@ -81,18 +81,19 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 ### Frontend Rules
 
-- **Layout:** `frontend/src/` — `App.tsx` (session gate + UI state + wires hooks), `api/` (fetch + errors), `hooks/` (`useAuth.ts`, `useNotes.ts`), `query/` (`client.ts`, `keys.ts`, `errors.ts`), `components/`, `types/` (`note.ts`, `user.ts`).
-- **State:** Server/async data → **TanStack Query** (`useQuery` / `useMutation`, hierarchical `authKeys` / `notesKeys`, optimistic mutations, prefetch). Auth session via `useMeQuery` + `useLoginMutation`; notes list/detail via `useNotesQuery` / `useNoteQuery`. Form, selection, dialogs → local **`useState`** in `App.tsx` (not in Query cache). Pattern: `api/` + `hooks/` + `query/keys.ts`.
+- **Layout:** `frontend/src/` — `App.tsx` (BrowserRouter + route tree), `pages/` (Login, Dashboard, NotesList, NoteDetail, Settings), `layouts/AppLayout.tsx`, `components/ProtectedRoute.tsx`, `api/`, `hooks/` (`useAuth.ts`, `useNotes.ts`, `useHealth.ts`, `useLogout.ts`), `query/`, `types/`.
+- **Routing (ADR-008):** `react-router-dom` v6 — `/login` (public), `/dashboard` (post-login home), `/notes`, `/notes/:id`, `/settings` (protected via `ProtectedRoute` + `AppLayout`). Component-driven data fetching (no route loaders).
+- **State:** Server/async data → **TanStack Query** (`authKeys` / `notesKeys` / `healthKeys`, optimistic mutations, prefetch). Form, dialogs → page-local **`useState`** (not in Query cache). Pattern: `pages/` → `hooks/` → `api/` → `query/keys.ts`.
 - **API client:** relative paths only (`/notes`, `/auth/login`, `/auth/me`); use `authFetch` in `api/client.ts` for Bearer + 401 → clear token. Login uses plain `fetch` + `application/x-www-form-urlencoded`.
-- **Vite proxy:** `vite.config.ts` forwards `/notes` and `/auth` → `http://127.0.0.1:8000`. Do not hardcode `:8000` in TS.
-- **Auth UI:** session resolution in `App.tsx` from `useMeQuery` (Unauthenticated / Resolving / Authenticated / Session expired / Session check failed); token in `sessionStorage` (`access_token`); login via `useLoginMutation`; logout clears storage + `removeQueries` on `authKeys.all` and `notesKeys.all` (no server logout). Optional hint: username is case-sensitive.
+- **Vite proxy:** `vite.config.ts` forwards `/notes`, `/auth`, and `/health` → `http://127.0.0.1:8000`. Do not hardcode `:8000` in TS.
+- **Auth UI:** session resolution in `ProtectedRoute` / `LoginPage` from `useMeQuery` (Unauthenticated / Resolving / Authenticated / Session expired / Session check failed); token in `sessionStorage` (`access_token`); login via `useLoginMutation` → navigate `/dashboard`; logout clears storage + `cancelQueries`/`removeQueries` on `authKeys`, `notesKeys`, `healthKeys` → navigate `/login`. Optional hint: username is case-sensitive.
 - **Types:** Mirror backend Pydantic schemas in `types/note.ts` — `title` max 200, `body` max 10_000; trim title before create/update.
 - **Errors:** Use `ApiError` + `apiErrorFromResponse()` for FastAPI 422 `detail` arrays; map `loc` to `title`/`body` field errors.
 - **Components:** Presentational only — props in, callbacks out; no direct `fetch` in components.
 - **Styling:** Tailwind utility classes only; no leftover Vite template CSS/assets.
 - **Dev server:** `host: "127.0.0.1"`, `port: 5173`, `strictPort: true`; Playwright `baseURL` / `webServer.url` must use the same host (`127.0.0.1`, not `localhost`).
 - **Production:** Static build needs reverse proxy for `/notes` **and** `/auth` (or equivalent); no CORS on API unless explicitly added.
-- **Out of scope unless user asks:** React Router, global client state library (Redux/Zustand), full CRUD E2E against live API with real login. See ADR-005 for TanStack Query server state.
+- **Out of scope unless user asks:** global client state library (Redux/Zustand), search/sort query params, `returnUrl` after login. See ADR-008 for routing; ADR-007 for Query patterns.
 
 ### Testing Rules
 
@@ -103,7 +104,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Migration tests: separate file (`test_migrations.py`); temp file DB + `alembic.command.upgrade`; assert row preservation and nullable `updated_at` after upgrade.
 - Assert `updated_at is None` after create, non-null after PUT update.
 - Run API tests: `python -m pytest` from project root.
-- Frontend E2E: `cd frontend && npm run test:e2e` — Playwright starts API (`scripts/e2e-api.sh`) + Vite; asserts `build-info` on login and after `admin` sign-in (`notes-app`). CI sets `SECRET_KEY` + `INITIAL_ADMIN_PASSWORD` for Alembic seed.
+- Frontend E2E: `cd frontend && npm run test:e2e` — Playwright starts API (`scripts/e2e-api.sh`) + Vite; asserts `build-info` on `/login` and after `admin` sign-in (`dashboard-app`). CI sets `SECRET_KEY` + `INITIAL_ADMIN_PASSWORD` for Alembic seed.
 - Do not commit `frontend/node_modules/`, `frontend/dist/`, `frontend/test-results/`, or `frontend/playwright-report/`.
 
 ### Code Quality & Style Rules

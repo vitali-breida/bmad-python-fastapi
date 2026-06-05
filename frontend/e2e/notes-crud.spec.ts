@@ -13,9 +13,18 @@ function noteSelectButton(page: Page, title: string) {
   return noteListItem(page, title).getByRole("button").first();
 }
 
+async function goToNotes(page: Page): Promise<void> {
+  await page
+    .locator("header")
+    .getByRole("link", { name: "Notes", exact: true })
+    .click();
+  await expect(page.getByTestId("notes-app")).toBeVisible();
+}
+
 test.describe("ADR-007 notes CRUD", () => {
   test.beforeEach(async ({ page }) => {
     await signIn(page);
+    await goToNotes(page);
   });
 
   test("create, read, update, and delete a note", async ({ page }) => {
@@ -26,12 +35,9 @@ test.describe("ADR-007 notes CRUD", () => {
     await page.getByLabel("Body").fill("First body");
     await page.getByRole("button", { name: "Create note" }).click();
 
-    const noteRow = noteSelectButton(page, title);
-    await expect(noteRow).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Edit note", level: 2 })).toBeVisible();
-    await expect(page.getByLabel("Title")).toHaveValue(title);
-
-    await noteRow.click();
+    await expect(page.getByTestId("note-detail-app")).toBeVisible();
+    await expect(page).toHaveURL(/\/notes\/\d+$/);
+    await expect(page.getByRole("heading", { name: "Edit note", level: 1 })).toBeVisible();
     await expect(page.getByLabel("Title")).toHaveValue(title);
     await expect(page.getByLabel("Body")).toHaveValue("First body");
 
@@ -39,17 +45,17 @@ test.describe("ADR-007 notes CRUD", () => {
     await page.getByLabel("Body").fill("Updated body");
     await page.getByRole("button", { name: "Save changes" }).click();
 
-    const updatedRow = noteSelectButton(page, updatedTitle);
-    await expect(updatedRow).toBeVisible();
-    await expect(updatedRow).toContainText("Updated body");
+    await expect(page.getByLabel("Title")).toHaveValue(updatedTitle);
+    await expect(page.getByLabel("Body")).toHaveValue("Updated body");
     await expect(page.getByRole("region", { name: "Note editor" })).toContainText(
       /Last updated/i,
     );
 
-    await page.getByRole("button", { name: `Delete note ${updatedTitle}` }).click();
+    await page.getByRole("button", { name: "Delete note" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await page.getByRole("dialog").getByRole("button", { name: "Delete" }).click();
 
+    await expect(page.getByTestId("notes-app")).toBeVisible();
     await expect(noteSelectButton(page, updatedTitle)).not.toBeVisible();
     await expect(page.getByRole("heading", { name: "New note", level: 2 })).toBeVisible();
   });
@@ -78,6 +84,9 @@ test.describe("ADR-007 notes CRUD", () => {
 
     await page.getByLabel("Title").fill(title);
     await page.getByRole("button", { name: "Create note" }).click();
+    await expect(page.getByTestId("note-detail-app")).toBeVisible();
+
+    await goToNotes(page);
     await expect(noteSelectButton(page, title)).toBeVisible();
 
     await page.getByRole("button", { name: `Delete note ${title}` }).click();

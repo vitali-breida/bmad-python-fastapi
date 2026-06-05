@@ -22,6 +22,12 @@
 Full hunter pass (ADR + spec): **`adr-003-follow-up-edge-cases.md`**.  
 **Ready to implement (items 1–4):** **`req-adr-003-follow-up-items-1-4.md`**.
 
+## Deferred from: code review of spec-adr-008-frontend-routing-v1.md (2026-06-05)
+
+- Scroll restoration AC has no e2e coverage — spec defers full Playwright matrix; manual check only.
+- ADR planning doc (`adr-008-frontend-routing-v1.md`) implementation-status table still shows Pending — sync when v1 ships.
+- AC7 Playwright pass not verified in review session — API on :8000 was not running; re-run `npx playwright test` with uvicorn.
+
 ## Deferred from: code review of spec-adr-003-jwt-authentication.md (2026-05-21)
 
 - E2E does not exercise login → notes CRUD — ADR marks full Playwright auth smoke as optional follow-up.

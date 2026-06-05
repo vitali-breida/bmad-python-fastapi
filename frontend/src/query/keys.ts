@@ -8,3 +8,8 @@ export const notesKeys = {
   list: () => [...notesKeys.all, "list"] as const,
   detail: (id: number) => [...notesKeys.all, "detail", id] as const,
 };
+
+export const healthKeys = {
+  all: ["health"] as const,
+  health: () => [...healthKeys.all, "health"] as const,
+};
