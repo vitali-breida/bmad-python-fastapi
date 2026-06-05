@@ -42,8 +42,8 @@ The **single product semver** lives in the root [`VERSION`](VERSION) file (plain
 
 | Where | What you see |
 |-------|----------------|
-| Web UI footer | `v0.4.0` on the login screen and Notes home (bottom of page) |
-| API | `GET /health` → `{"status":"ok","version":"0.4.0"}`; OpenAPI `info.version` matches |
+| Web UI footer | `v0.4.1` on the login screen and Notes home (bottom of page) |
+| API | `GET /health` → `{"status":"ok","version":"0.4.1"}`; OpenAPI `info.version` matches |
 | Release notes | [`CHANGELOG.md`](CHANGELOG.md); deploy policy in [`docs/releases/compatibility.md`](docs/releases/compatibility.md) |
 
 **Bump a release:** edit `VERSION`, add a section to `CHANGELOG.md`, mirror `frontend/package.json` `version`, rebuild the Docker image with build-args from `VERSION` (below).
