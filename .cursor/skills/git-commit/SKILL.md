@@ -7,9 +7,10 @@ description: Analyzes git diff and writes commit messages in Conventional Commit
 
 ## Before writing the message
 
-1. Run in parallel: `git status`, `git diff` (staged and unstaged), `git log -5 --oneline`.
-2. Commit only intended changes; never stage secrets (`.env`, credentials, keys).
-3. Match language and tone of recent commits in `git log`; default to English unless the user writes in Russian.
+1. **Run `release-preflight` skill** when the change ships user-visible work or touches `frontend/package.json`: bump `VERSION` + `frontend/package.json` + `CHANGELOG.md`, sync `package-lock.json` (WSL Docker if deps changed). See `.cursor/skills/release-preflight/SKILL.md`.
+2. Run in parallel: `git status`, `git diff` (staged and unstaged), `git log -5 --oneline`.
+3. Commit only intended changes; never stage secrets (`.env`, credentials, keys).
+4. Match language and tone of recent commits in `git log`; default to English unless the user writes in Russian.
 
 Follow the project's git safety user rules (no force push, no amend unless allowed, commit only when explicitly asked).
 
