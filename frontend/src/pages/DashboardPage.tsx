@@ -42,7 +42,7 @@ export function DashboardPage() {
         </p>
       ) : notes.length === 0 ? (
         <div className="mt-6 rounded-lg border border-gray-200 bg-white p-6">
-          <p className="text-sm text-gray-600">Заметок пока нет</p>
+          <p className="text-sm text-gray-600">No notes yet</p>
           <button
             type="button"
             onClick={() => navigate("/notes")}

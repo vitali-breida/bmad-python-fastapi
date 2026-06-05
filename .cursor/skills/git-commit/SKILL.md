@@ -1,6 +1,6 @@
 ---
 name: git-commit
-description: Analyzes git diff and writes commit messages in Conventional Commits format. Use when the user asks to commit, create a git commit, write a commit message, or says "закоммить" / "сделай коммит".
+description: Analyzes git diff and writes commit messages in Conventional Commits format. Use when the user asks to commit, create a git commit, or write a commit message.
 ---
 
 # Git commit messages

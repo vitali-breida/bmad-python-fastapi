@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-06-05
+
+### Added
+
+- Multi-page routing with React Router (ADR-008): dashboard, notes list and detail, settings, protected routes, and breadcrumbs.
+
+### Fixed
+
+- Sync `frontend/package-lock.json` for Linux CI `npm ci` (missing `@emnapi` entries).
+
 ## [0.4.1] - 2026-06-05
 
 ### Added
@@ -28,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - React web UI with TanStack Query for notes CRUD (ADR-005).
 - CI/CD preview deploy with coupled Docker image (ADR-004).
 
-[Unreleased]: https://github.com/vitali-breida/bmad-python-fastapi/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/vitali-breida/bmad-python-fastapi/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/vitali-breida/bmad-python-fastapi/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/vitali-breida/bmad-python-fastapi/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/vitali-breida/bmad-python-fastapi/releases/tag/v0.4.0
