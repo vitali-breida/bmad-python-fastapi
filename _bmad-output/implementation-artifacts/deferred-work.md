@@ -33,3 +33,9 @@ Full hunter pass (ADR + spec): **`adr-003-follow-up-edge-cases.md`**.
 - E2E does not exercise login → notes CRUD — ADR marks full Playwright auth smoke as optional follow-up.
 - Duplicate `PasswordHash` setup in migration and `app/auth/security.py` — shared helper would reduce drift risk; behavior is correct today.
 - ~~ADR security checklist~~ — ticked in planning ADR on implementation acceptance (2026-05-21); rate limiting remains optional follow-up.
+
+## Deferred from: code review of spec-adr-009-dashboard-notes-ux-v2.md (2026-06-05)
+
+- Background refetch may overwrite in-progress detail form edits — pre-existing optimistic-update pattern; unsaved-changes warning out of scope v1.
+- Second navigation with new toast state lost when same `noteId` — rare re-navigation edge case.
+- bfcache restoration may replay creation toast — low-frequency browser back/forward scenario.

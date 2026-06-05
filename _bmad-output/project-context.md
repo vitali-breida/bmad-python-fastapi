@@ -93,7 +93,11 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **Styling:** Tailwind utility classes only; no leftover Vite template CSS/assets.
 - **Dev server:** `host: "127.0.0.1"`, `port: 5173`, `strictPort: true`; Playwright `baseURL` / `webServer.url` must use the same host (`127.0.0.1`, not `localhost`).
 - **Production:** Static build needs reverse proxy for `/notes` **and** `/auth` (or equivalent); no CORS on API unless explicitly added.
-- **Out of scope unless user asks:** global client state library (Redux/Zustand), search/sort query params, `returnUrl` after login. See ADR-008 for routing; ADR-007 for Query patterns.
+- **Page roles (ADR-009):** Dashboard = **hub** (greeting, tagline, up to 5 recent notes via `sortNotesForDisplay`, single “New note” CTA → `/notes?new=1`, optional “Continue editing” from `sessionStorage` `last-note`). Notes list = **browse** (full-width list, collapsible `ExpandableCreatePanel`; expanded when empty or `?new=1`, collapsed when notes exist). Detail = **only edit surface** (`secondaryLabel="Back to notes"`). Settings = account + collapsible **Developer info** (`useHealthQuery` API version). No health block on Dashboard.
+- **Sort:** `frontend/src/utils/notesSort.ts` — `sortNotesForDisplay()` is the single sort source for Dashboard recents and Notes list (`updated_at` desc, null/invalid last, `id` desc tie-break).
+- **Toast:** custom `Toast` component (page-local, ~3s auto-dismiss, `data-testid="toast"`). Post-create: navigate to detail with `state: { toast: 'Note created' }`; detail consumes and clears via `replace`. Post-update: “Saved” toast on detail.
+- **List delete:** `NoteListItem` overflow menu (⋯) → Delete → `ConfirmDialog`; clear `last-note` on delete when id matches (`frontend/src/utils/lastNote.ts`).
+- **Out of scope unless user asks:** global client state library (Redux/Zustand), search/sort query params, `returnUrl` after login. See ADR-008 for routing; ADR-007 for Query patterns; ADR-009 for UX v2.
 
 ### Testing Rules
 

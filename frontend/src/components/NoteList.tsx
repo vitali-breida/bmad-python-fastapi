@@ -1,5 +1,5 @@
-import { formatUpdatedAt } from "../formatUpdatedAt";
 import type { Note } from "../types/note";
+import { NoteListItem } from "./NoteListItem";
 
 type NoteListProps = {
   notes: Note[];
@@ -19,53 +19,23 @@ export function NoteList({
   if (notes.length === 0) {
     return (
       <p className="text-sm text-gray-500" data-testid="notes-empty">
-        No notes yet. Create your first note using the form.
+        No notes yet. Use the button above to create your first note.
       </p>
     );
   }
 
   return (
     <ul className="divide-y divide-gray-200 rounded-lg border border-gray-200">
-      {notes.map((note) => {
-        const selected = note.id === selectedId;
-        const updatedLabel = formatUpdatedAt(note.updated_at);
-        return (
-          <li
-            key={note.id}
-            className={`flex items-start justify-between gap-2 p-3 ${
-              selected ? "bg-indigo-50" : "hover:bg-gray-50"
-            }`}
-          >
-            <button
-              type="button"
-              onClick={() => onSelect(note)}
-              onMouseEnter={() => onPrefetch?.(note.id)}
-              onFocus={() => onPrefetch?.(note.id)}
-              className="min-w-0 flex-1 text-left"
-            >
-              <span className="block truncate font-medium text-gray-900">{note.title}</span>
-              {note.body ? (
-                <span className="mt-0.5 block truncate text-sm text-gray-500">{note.body}</span>
-              ) : null}
-              {updatedLabel ? (
-                <span className="mt-0.5 block text-xs text-gray-400">
-                  Updated {updatedLabel}
-                </span>
-              ) : null}
-            </button>
-            {note.id > 0 ? (
-              <button
-                type="button"
-                onClick={() => onDelete(note)}
-                className="shrink-0 text-sm text-red-600 hover:text-red-800"
-                aria-label={`Delete note ${note.title}`}
-              >
-                Delete
-              </button>
-            ) : null}
-          </li>
-        );
-      })}
+      {notes.map((note) => (
+        <NoteListItem
+          key={note.id}
+          note={note}
+          selected={note.id === selectedId}
+          onSelect={onSelect}
+          onDelete={onDelete}
+          onPrefetch={onPrefetch}
+        />
+      ))}
     </ul>
   );
 }

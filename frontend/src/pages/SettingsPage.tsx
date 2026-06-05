@@ -1,3 +1,4 @@
+import { DeveloperInfo } from "../components/DeveloperInfo";
 import { useMeQuery } from "../hooks/useAuth";
 import { useLogout } from "../hooks/useLogout";
 
@@ -16,6 +17,8 @@ export function SettingsPage() {
           {meQuery.data?.username ?? "—"}
         </p>
       </div>
+
+      <DeveloperInfo />
 
       <button
         type="button"

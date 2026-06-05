@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-06-05
+
+### Changed
+
+- Dashboard & Notes UX v2 (ADR-009): hub/browse/work page roles — recent notes on dashboard, list-only notes page with expandable create panel, toast feedback, overflow delete menu, API version moved to Settings Developer info.
+
 ## [0.4.2] - 2026-06-05
 
 ### Added
@@ -38,7 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - React web UI with TanStack Query for notes CRUD (ADR-005).
 - CI/CD preview deploy with coupled Docker image (ADR-004).
 
-[Unreleased]: https://github.com/vitali-breida/bmad-python-fastapi/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/vitali-breida/bmad-python-fastapi/compare/v0.4.3...HEAD
+[0.4.3]: https://github.com/vitali-breida/bmad-python-fastapi/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/vitali-breida/bmad-python-fastapi/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/vitali-breida/bmad-python-fastapi/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/vitali-breida/bmad-python-fastapi/releases/tag/v0.4.0

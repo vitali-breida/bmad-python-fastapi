@@ -1,8 +1,8 @@
 import { useCallback, useLayoutEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import type { FieldErrors } from "../api/errors";
 import { ConfirmDialog } from "../components/ConfirmDialog";
-import { NoteForm } from "../components/NoteForm";
+import { ExpandableCreatePanel } from "../components/ExpandableCreatePanel";
 import { NoteList } from "../components/NoteList";
 import { useMeQuery } from "../hooks/useAuth";
 import {
@@ -14,6 +14,8 @@ import {
 import { queryClient } from "../query/client";
 import { applyMappedError, mapApiError } from "../query/errors";
 import { notesKeys } from "../query/keys";
+import { clearLastNoteIfMatch } from "../utils/lastNote";
+import { sortNotesForDisplay } from "../utils/notesSort";
 import type { Note } from "../types/note";
 
 const SCROLL_KEY = "notes-list-scroll-y";
@@ -24,13 +26,16 @@ function emptyForm() {
 
 export function NotesListPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const meQuery = useMeQuery();
   const notesEnabled = meQuery.isSuccess && meQuery.data != null;
+  const [bootstrapNew] = useState(() => searchParams.get("new") === "1");
 
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [form, setForm] = useState(emptyForm);
   const [pendingDelete, setPendingDelete] = useState<Note | null>(null);
+  const [panelOverride, setPanelOverride] = useState<boolean | null>(null);
 
   const {
     data: notes = [],
@@ -38,6 +43,10 @@ export function NotesListPage() {
     isError,
     error: notesError,
   } = useNotesQuery(notesEnabled);
+
+  const sortedNotes = sortNotesForDisplay(notes);
+  const panelExpanded =
+    panelOverride ?? (bootstrapNew || (!loading && sortedNotes.length === 0));
 
   const createNote = useCreateNote();
   const deleteNote = useDeleteNote();
@@ -49,13 +58,20 @@ export function NotesListPage() {
   const displayError = globalError ?? listError;
 
   useLayoutEffect(() => {
+    if (bootstrapNew) {
+      setSearchParams({}, { replace: true });
+    }
+  }, [bootstrapNew, setSearchParams]);
+
+  useLayoutEffect(() => {
     if (loading) return;
     const saved = sessionStorage.getItem(SCROLL_KEY);
     if (saved) {
       const y = Number(saved);
       sessionStorage.removeItem(SCROLL_KEY);
       if (Number.isFinite(y) && y >= 0) {
-        requestAnimationFrame(() => window.scrollTo(0, y));
+        const frameId = requestAnimationFrame(() => window.scrollTo(0, y));
+        return () => cancelAnimationFrame(frameId);
       }
     }
   }, [loading]);
@@ -69,10 +85,24 @@ export function NotesListPage() {
     [navigate],
   );
 
-  const startNewNote = () => {
+  const resetForm = () => {
     setForm(emptyForm());
     setFieldErrors({});
     setGlobalError(null);
+  };
+
+  const handleCancelCreate = () => {
+    setPanelOverride(false);
+    resetForm();
+  };
+
+  const toggleCreatePanel = () => {
+    if (panelExpanded) {
+      handleCancelCreate();
+    } else {
+      resetForm();
+      setPanelOverride(true);
+    }
   };
 
   const handleMutationError = (err: unknown, fallback: string) => {
@@ -96,7 +126,8 @@ export function NotesListPage() {
     createNote.mutate(
       { title: trimmedTitle, body: form.body },
       {
-        onSuccess: (created) => navigate(`/notes/${created.id}`),
+        onSuccess: (created) =>
+          navigate(`/notes/${created.id}`, { state: { toast: "Note created" } }),
         onError: (err) => handleMutationError(err, "Failed to save note"),
       },
     );
@@ -119,14 +150,30 @@ export function NotesListPage() {
     setGlobalError(null);
 
     deleteNote.mutate(id, {
-      onSuccess: () => setPendingDelete(null),
+      onSuccess: () => {
+        clearLastNoteIfMatch(id);
+        setPendingDelete(null);
+        const list = queryClient.getQueryData<Note[]>(notesKeys.list());
+        if (list && list.filter((note) => note.id !== id).length === 0) {
+          setPanelOverride(null);
+        }
+      },
       onError: (err) => handleMutationError(err, "Failed to delete note"),
     });
   };
 
   return (
     <div data-testid="notes-app">
-      <h1 className="text-2xl font-semibold text-gray-900">Notes</h1>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-2xl font-semibold text-gray-900">Notes</h1>
+        <button
+          type="button"
+          onClick={toggleCreatePanel}
+          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+        >
+          + New note
+        </button>
+      </div>
 
       {displayError ? (
         <p
@@ -140,30 +187,26 @@ export function NotesListPage() {
       {loading ? (
         <p className="mt-6 text-sm text-gray-500">Loading notes…</p>
       ) : (
-        <div className="mt-6 grid gap-8 lg:grid-cols-2">
+        <div className="mt-6">
+          <ExpandableCreatePanel
+            expanded={panelExpanded}
+            title={form.title}
+            body={form.body}
+            fieldErrors={fieldErrors}
+            saving={saving}
+            onTitleChange={(title) => setForm((f) => ({ ...f, title }))}
+            onBodyChange={(body) => setForm((f) => ({ ...f, body }))}
+            onSubmit={handleSubmit}
+            onCancel={handleCancelCreate}
+          />
+
           <section aria-label="Notes list">
-            <h2 className="mb-3 text-lg font-medium text-gray-900">All notes</h2>
             <NoteList
-              notes={notes}
+              notes={sortedNotes}
               selectedId={null}
               onSelect={selectNote}
               onDelete={setPendingDelete}
               onPrefetch={(id) => prefetchNote(queryClient, id)}
-            />
-          </section>
-
-          <section aria-label="Note editor">
-            <h2 className="mb-3 text-lg font-medium text-gray-900">New note</h2>
-            <NoteForm
-              title={form.title}
-              body={form.body}
-              fieldErrors={fieldErrors}
-              isEditing={false}
-              saving={saving}
-              onTitleChange={(title) => setForm((f) => ({ ...f, title }))}
-              onBodyChange={(body) => setForm((f) => ({ ...f, body }))}
-              onSubmit={handleSubmit}
-              onNew={startNewNote}
             />
           </section>
         </div>
