@@ -193,6 +193,6 @@ context:
 - [x] [Review][Patch] Duplicated query-cache reset in App.tsx and useLogout [`frontend/src/query/session.ts`]
 - [x] [Review][Patch] Scroll restore does not guard against corrupt sessionStorage value [`frontend/src/pages/NotesListPage.tsx:55`]
 - [x] [Review][Defer] Scroll restoration AC has no e2e coverage — deferred, spec defers full matrix
-- [x] [Review][Defer] ADR planning doc implementation-status table still shows Pending — deferred, docs sync
+- [x] [Review][Defer] ADR planning doc implementation-status table still shows Pending — synced 2026-06-07
 - [x] [Review][Defer] AC7 Playwright pass not verified in review (API :8000 down) — deferred, re-run with uvicorn
 - [x] [Review][Patch] `goToNotes` strict-mode violation — `name: 'Notes'` matches «View all notes» [`frontend/e2e/notes-crud.spec.ts:17`]

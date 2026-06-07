@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.4] - 2026-06-07
+
+### Added
+
+- Test coverage and quality policy (ADR-010): CI enforces ≥85% line coverage on `app/` via `pytest-cov`; canonical critical-path e2e checklist and epic sign-off templates in `quality-gates.md`.
+
+### Changed
+
+- Sync ADR-008/009 planning docs to implemented status; Epic 9 retrospective artifacts.
+
 ## [0.4.3] - 2026-06-05
 
 ### Changed
@@ -44,7 +54,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - React web UI with TanStack Query for notes CRUD (ADR-005).
 - CI/CD preview deploy with coupled Docker image (ADR-004).
 
-[Unreleased]: https://github.com/vitali-breida/bmad-python-fastapi/compare/v0.4.3...HEAD
+[Unreleased]: https://github.com/vitali-breida/bmad-python-fastapi/compare/v0.4.4...HEAD
+[0.4.4]: https://github.com/vitali-breida/bmad-python-fastapi/compare/v0.4.3...v0.4.4
 [0.4.3]: https://github.com/vitali-breida/bmad-python-fastapi/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/vitali-breida/bmad-python-fastapi/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/vitali-breida/bmad-python-fastapi/compare/v0.4.0...v0.4.1

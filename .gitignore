@@ -4,6 +4,7 @@ _bmad/
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.coverage
 .venv/
 venv/
 .env

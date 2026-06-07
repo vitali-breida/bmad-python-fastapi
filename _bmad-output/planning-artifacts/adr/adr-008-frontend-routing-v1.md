@@ -1,6 +1,6 @@
 # ADR-008: Frontend routing v1 — multi-page SPA
 
-**Status:** Accepted  
+**Status:** Accepted — **v1 implemented** (2026-06-07)  
 **Date:** 2026-06-05  
 **Scope:** `frontend/` Notes SPA — introduce URL-driven navigation with React Router. Split monolithic `App.tsx` into pages, layout, and protected routes. No backend API changes required for v1.  
 **Related:** ADR-007 (TanStack Query v2 — complete), ADR-005 (Query baseline), ADR-003 (JWT, `GET /auth/me`), ADR-006 (version visibility), `../brainstorming/brainstorming-session-2026-06-05-1657.md`, `../../implementation-artifacts/plan-tanstack-query-phases.md`.  
@@ -188,7 +188,7 @@ ADR-007 session phases remain; **rendering location** changes:
 
 ## Implementation phases
 
-Detailed checklist may live in `../../implementation-artifacts/plan-routing-v1-phases.md` (optional follow-up). Minimum phase breakdown:
+Detailed checklist: `../../implementation-artifacts/spec-adr-008-frontend-routing-v1.md` (complete).
 
 | Phase | Goal |
 |-------|------|
@@ -220,9 +220,9 @@ Detailed checklist may live in `../../implementation-artifacts/plan-routing-v1-p
 ## Compliance
 
 - [x] ADR-008 accepted before routing implementation starts (this document).
-- [ ] `npm run lint`, `npm run build`, Playwright smoke pass after implementation.
-- [ ] README frontend section updated (routes, dev URLs).
-- [ ] `project-context.md` frontend rules updated when v1 ships (router, pages, protected routes).
+- [x] `npm run lint`, `npm run build`, Playwright smoke pass after implementation.
+- [x] README frontend section updated (routes, dev URLs).
+- [x] `project-context.md` frontend rules updated when v1 ships (router, pages, protected routes).
 
 ## References
 
@@ -235,11 +235,11 @@ Detailed checklist may live in `../../implementation-artifacts/plan-routing-v1-p
 
 | Phase | Status | Notes |
 |-------|--------|-------|
-| 1 — Router shell + login + protected skeleton | **Pending** | |
-| 2 — Layout + dashboard + health query | **Pending** | |
-| 3 — Notes list page | **Pending** | |
-| 4 — Note detail + breadcrumbs | **Pending** | |
-| 5 — Settings | **Pending** | |
-| 6 — Scroll restoration + e2e + docs | **Pending** | |
+| 1 — Router shell + login + protected skeleton | **Done** | 2026-06-07 |
+| 2 — Layout + dashboard + health query | **Done** | 2026-06-07 |
+| 3 — Notes list page | **Done** | 2026-06-07 |
+| 4 — Note detail + breadcrumbs | **Done** | 2026-06-07 |
+| 5 — Settings | **Done** | 2026-06-07 |
+| 6 — Scroll restoration + e2e + docs | **Done** | 2026-06-07 |
 
 **v1 is complete only when all six rows are done.**

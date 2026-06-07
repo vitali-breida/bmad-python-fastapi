@@ -107,7 +107,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Never read/write project-root `notes.db` in unit/API tests.
 - Migration tests: separate file (`test_migrations.py`); temp file DB + `alembic.command.upgrade`; assert row preservation and nullable `updated_at` after upgrade.
 - Assert `updated_at is None` after create, non-null after PUT update.
-- Run API tests: `python -m pytest` from project root.
+- Run API tests: `python -m pytest --cov=app --cov-fail-under=85 --cov-report=term-missing` from project root (Coverage policy Rule 1; baseline ~92%).
 - Frontend E2E: `cd frontend && npm run test:e2e` — Playwright starts API (`scripts/e2e-api.sh`) + Vite; asserts `build-info` on `/login` and after `admin` sign-in (`dashboard-app`). CI sets `SECRET_KEY` + `INITIAL_ADMIN_PASSWORD` for Alembic seed.
 - Do not commit `frontend/node_modules/`, `frontend/dist/`, `frontend/test-results/`, or `frontend/playwright-report/`.
 
@@ -128,7 +128,10 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Revision chain: `001_baseline_notes` → `002_add_notes_updated_at` → `003_add_users_table` (revision id = filename stem).
 - Out of scope unless user asks: authz/RBAC, PostgreSQL swap (local dev), pagination, multi-worker SQLite, production UI hosting/CORS.
 - **CI/CD (ADR-004 v1 — done):** CI on `main`; preview https://bmad-python-fastapi.onrender.com/ (manual Render deploy, `Dockerfile` + `deploy/nginx.conf.template`). Phase 3 Neon deferred — see `deferred-work.md`.
-- Planning context: ADRs in `_bmad-output/planning-artifacts/adr/` (ADR-003 authn, ADR-004 CI/CD, ADR-005 TanStack Query v1, ADR-006 versioning, ADR-007 TanStack Query v2 patterns — **implemented**); specs in `_bmad-output/implementation-artifacts/`.
+- Planning context: ADRs in `_bmad-output/planning-artifacts/adr/` (ADR-003 authn, ADR-004 CI/CD, ADR-005 TanStack Query v1, ADR-006 versioning, ADR-007 TanStack Query v2 patterns, ADR-008 routing, ADR-009 UX v2 — **implemented**; **ADR-010** test coverage policy — **implemented**); specs in `_bmad-output/implementation-artifacts/`.
+- **Quality gates (epic DoD):** Every new `spec-*.md` MUST include a `## Quality Gates` section copied from `_bmad-output/implementation-artifacts/quality-gates.md`. Mark all gates `[x]` before epic sign-off. Deferrals → `deferred-work.md`. Retro reference: `epic-9-retro-2026-06-07.md`.
+- **Coverage policy (ADR-010):** `_bmad-output/planning-artifacts/adr/adr-010-test-coverage-and-quality-policy.md` (decision); operational checklist in `quality-gates.md` § Coverage policy. Rule 1–2 enforced in CI; Rule 3–4 on epic sign-off. Every spec MUST include `Coverage baseline`, `Test delta (plan/actual)`, and `Coverage after` at close. Baseline 2026-06-07: backend 92%, pytest 28, e2e 15, critical paths 7/7.
+- **UX change order:** user-visible behavior → `bmad-create-ux-design` (full or shortened scope) → ADR → spec (with Quality Gates) → implementation → `bmad-code-review` + automation. P2/P3 backlog items **extend** ADR-008/009; they do not replace routes or page roles.
 
 ### Critical Don't-Miss Rules
 
@@ -162,4 +165,4 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Review quarterly for outdated rules.
 - Remove rules that become obvious over time.
 
-Last Updated: 2026-06-05
+Last Updated: 2026-06-07

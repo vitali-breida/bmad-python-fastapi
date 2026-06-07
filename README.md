@@ -211,10 +211,10 @@ alembic upgrade head
 ## Tests
 
 ```powershell
-python -m pytest
+python -m pytest --cov=app --cov-fail-under=85 --cov-report=term-missing
 ```
 
-Tests use an in-memory SQLite database via FastAPI dependency overrides (see `tests/conftest.py`). Migration behavior is covered in `tests/test_migrations.py`.
+Tests use an in-memory SQLite database via FastAPI dependency overrides (see `tests/conftest.py`). Migration behavior is covered in `tests/test_migrations.py`. CI enforces **≥85% line coverage** on `app/` per [ADR-010](_bmad-output/planning-artifacts/adr/adr-010-test-coverage-and-quality-policy.md) (baseline ~92%; checklist in [`quality-gates.md`](_bmad-output/implementation-artifacts/quality-gates.md)).
 
 ## Continuous integration
 
@@ -222,7 +222,7 @@ On every push and pull request to `main`, GitHub Actions runs three jobs (see [`
 
 | Job | Checks |
 |-----|--------|
-| `backend` | `python -m pytest` (Python 3.11) |
+| `backend` | `python -m pytest --cov=app --cov-fail-under=85` (Python 3.11) |
 | `frontend` | `npm run lint`, `npm run build` (Node 24) |
 | `e2e` | Playwright (`CI=true`; API + Vite; version footer on login and after sign-in) |
 

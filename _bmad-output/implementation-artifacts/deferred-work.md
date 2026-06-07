@@ -1,5 +1,16 @@
 # Deferred work
 
+## Coverage policy (ADR-010)
+
+**ADR:** `../planning-artifacts/adr/adr-010-test-coverage-and-quality-policy.md`  
+**Spec:** `spec-adr-010-test-coverage-and-quality-policy.md`
+
+**v1 complete (2026-06-07):** Rules 1–2 CI-enforced; Rules 3–4 manual epic sign-off via spec templates in `quality-gates.md`.
+
+**Deferred:**
+
+- **Automated Rule 4 in CI** — compare backend coverage at epic start vs end in workflow; manual spec sign-off sufficient for solo dev v1.
+
 ## CI/CD and preview (ADR-004)
 
 **ADR:** `../planning-artifacts/adr/adr-004-ci-cd-and-preview-deployment.md`  
@@ -24,9 +35,11 @@ Full hunter pass (ADR + spec): **`adr-003-follow-up-edge-cases.md`**.
 
 ## Deferred from: code review of spec-adr-008-frontend-routing-v1.md (2026-06-05)
 
+**ADR-008 v1 complete (2026-06-07):** planning doc implementation-status synced; spec `status: done`.
+
 - Scroll restoration AC has no e2e coverage — spec defers full Playwright matrix; manual check only.
-- ADR planning doc (`adr-008-frontend-routing-v1.md`) implementation-status table still shows Pending — sync when v1 ships.
-- AC7 Playwright pass not verified in review session — API on :8000 was not running; re-run `npx playwright test` with uvicorn.
+- ~~ADR planning doc implementation-status table still shows Pending~~ — synced 2026-06-07.
+- ~~AC7 Playwright pass not verified in review session~~ — verified on implementation acceptance 2026-06-07.
 
 ## Deferred from: code review of spec-adr-003-jwt-authentication.md (2026-05-21)
 
@@ -36,6 +49,13 @@ Full hunter pass (ADR + spec): **`adr-003-follow-up-edge-cases.md`**.
 
 ## Deferred from: code review of spec-adr-009-dashboard-notes-ux-v2.md (2026-06-05)
 
+**ADR-009 complete (2026-06-07):** planning doc status + implementation-status synced; spec `status: done`.
+
 - Background refetch may overwrite in-progress detail form edits — pre-existing optimistic-update pattern; unsaved-changes warning out of scope v1.
 - Second navigation with new toast state lost when same `noteId` — rare re-navigation edge case.
 - bfcache restoration may replay creation toast — low-frequency browser back/forward scenario.
+
+## Deferred from: code review of spec-adr-010-test-coverage-and-quality-policy.md (2026-06-07)
+
+- ADR-008/009 status sync bundled in same working tree — out-of-scope doc housekeeping, not ADR-010 regression.
+- Local Playwright failures in `test-results/` (wrong `INITIAL_ADMIN_PASSWORD`) — CI env uses `e2e-ci-admin-password`; re-run with matching env to verify Rule 2 locally.

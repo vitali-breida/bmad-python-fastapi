@@ -1,6 +1,6 @@
 # ADR-009: Frontend Dashboard & Notes UX v2 — hub + list-only (D1)
 
-**Status:** Accepted  
+**Status:** Accepted — **implemented** (2026-06-07)  
 **Date:** 2026-06-05  
 **Scope:** `frontend/` — refactor Dashboard and Notes pages for clear page roles (hub / browse / work). Layout, interaction, and feedback changes within the ADR-008 route map. Optional minor backend list ordering improvement.  
 **Related:** ADR-008 (routing v1 — route map **unchanged**), ADR-007 (TanStack Query patterns — **reuse**), ADR-006 (version visibility), ADR-003 (JWT), `../ux-design-specification.md`, `../ux-design-directions.html`, `../brainstorming/brainstorming-session-2026-06-05-1657.md`.  
@@ -206,7 +206,7 @@ Notes list: full sorted array.
 | **5** | Settings DeveloperInfo; remove health from Dashboard | `DeveloperInfo.tsx`, `SettingsPage.tsx` |
 | **6** | Optional continue-editing; E2E + README + CHANGELOG + `project-context.md` | `frontend/e2e/`, docs |
 
-Detailed checklist may live in `../../implementation-artifacts/spec-adr-009-dashboard-notes-ux-v2.md` (create before implementation).
+Detailed checklist: `../../implementation-artifacts/spec-adr-009-dashboard-notes-ux-v2.md` (complete).
 
 ## Testing strategy
 
@@ -242,10 +242,23 @@ Detailed checklist may live in `../../implementation-artifacts/spec-adr-009-dash
 ## Compliance
 
 - [x] ADR-009 accepted before implementation starts (this document).
-- [ ] UX spec acceptance criteria (pre-mortem signals) verified
-- [ ] `npm run lint`, `npm run build`, Playwright smoke pass
-- [ ] VERSION + CHANGELOG PATCH bump on release
-- [ ] `project-context.md` updated when shipped
+- [x] UX spec acceptance criteria (pre-mortem signals) verified
+- [x] `npm run lint`, `npm run build`, Playwright smoke pass
+- [x] VERSION + CHANGELOG PATCH bump on release
+- [x] `project-context.md` updated when shipped
+
+## Implementation status
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| 1 — Sort util + Dashboard hub | **Done** | 2026-06-07 |
+| 2 — Notes list-only + expand panel + `?new=1` | **Done** | 2026-06-07 |
+| 3 — Toast + detail labels + save/create feedback | **Done** | 2026-06-07 |
+| 4 — NoteListItem overflow delete | **Done** | 2026-06-07 |
+| 5 — Settings DeveloperInfo; remove health from Dashboard | **Done** | 2026-06-07 |
+| 6 — Continue editing; E2E + README + CHANGELOG + `project-context.md` | **Done** | 2026-06-07 |
+
+**v2 is complete only when all six rows are done.**
 
 ## References
 
@@ -261,4 +274,4 @@ Detailed checklist may live in `../../implementation-artifacts/spec-adr-009-dash
 |------|------|------|------------------------------|
 | Architect | Vitali | 2026-06-05 | Approved |
 | UX (Sally) | Vitali / spec author | 2026-06-05 | UX spec + D1 approved |
-| Implementation | | | |
+| Implementation | Vitali | 2026-06-07 | Approved |
