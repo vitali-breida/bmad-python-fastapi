@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.5] - 2026-06-07
+
+### Added
+
+- ADR-004 Phase 3: production `DATABASE_URL` guard — preview on Render requires Neon Postgres when `ENVIRONMENT=production`; fail-fast if SQLite or unset.
+- `tests/test_database.py` — production database guard test matrix.
+
+### Changed
+
+- Preview deploy docs: Neon Postgres operator steps; notes persist across Render redeploys.
+- `project-context.md` — preview uses Neon; local dev stays SQLite.
+
 ## [0.4.4] - 2026-06-07
 
 ### Added
