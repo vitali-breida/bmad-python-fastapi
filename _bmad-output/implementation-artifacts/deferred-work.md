@@ -15,13 +15,14 @@
 
 **ADR:** `../planning-artifacts/adr/adr-004-ci-cd-and-preview-deployment.md`  
 **Phased plan:** `plan-ci-cd-phases.md`  
-**Preview (v1):** https://bmad-python-fastapi.onrender.com/
+**Spec:** `spec-adr-004-phase3-neon-postgres.md`  
+**Preview:** https://bmad-python-fastapi.onrender.com/ (Neon Postgres; v0.4.5)
 
-**v1 complete (2026-05-22):** Phase 1 CI + Phase 2 Render manual deploy. ADR-004 closed for now unless a backlog item is picked up.
+**Complete (2026-06-07):** Phases 1–3 — CI, Render manual deploy, Neon persistence + production `DATABASE_URL` guard. Persistence smoke passed.
 
-**Deferred (Phase 3 and backlog):**
+**Deferred (backlog):**
 
-- **Neon Postgres** on Render — set `DATABASE_URL`; notes survive redeploy (`psycopg` already in repo).
+- **CI Postgres migration smoke (Phase 2b)** — `postgres:16` service job or documented one-off Neon `alembic upgrade head` in CI; migrations verified manually on Neon 2026-06-07.
 - Playwright login → notes CRUD on live API (CI or against preview).
 - Post-deploy smoke in workflow (`curl /health`, login after Render deploy).
 - Auto-deploy on `main` merge.
@@ -30,11 +31,11 @@
 
 ## Deferred from: code review of spec-adr-004-phase3-neon-postgres.md (2026-06-07)
 
-- **Traceability docs still say Phase 3 deferred** — `deferred-work.md`, `adr-004-ci-cd-and-preview-deployment.md`, `plan-ci-cd-phases.md` not updated yet; Phase 5 operator closeout pending.
 - **Non-Postgres URL not positively validated** — spec I/O matrix only requires rejecting missing/SQLite; `mysql://` etc. not in scope for this epic.
 - **`file:` database scheme not rejected** — local dev uses `sqlite://` only; not in spec I/O matrix.
 - **`ENV=prod` alias not covered in test matrix** — minor gap; `_is_production()` predates this change.
 - **Phase 1 AC #4 (dev import unchanged) not directly asserted** — suite passes; indirect coverage sufficient for v1.
+- **Padded Postgres URL not stripped before normalize** — guard uses `.strip()`; `DATABASE_URL` assignment does not; unlikely via Render dashboard paste.
 
 ## ADR-003 edge-case follow-up (consolidated)
 

@@ -1,12 +1,12 @@
 # CI/CD implementation plan (phased)
 
 **ADR:** `../planning-artifacts/adr/adr-004-ci-cd-and-preview-deployment.md`  
-**Status:** **v1 complete** (Phases 1–2 accepted; Phase 3 deferred)  
-**Preview URL:** https://bmad-python-fastapi.onrender.com/  
+**Status:** **complete** (Phases 1–3 accepted)  
+**Preview URL:** https://bmad-python-fastapi.onrender.com/ (Neon Postgres; v0.4.5)  
 **Phase 1:** CI green on `main` ✓  
 **Phase 2:** Render manual deploy ✓  
-**Phase 3:** deferred — Neon `DATABASE_URL` not configured on Render  
-**Last updated:** 2026-05-22
+**Phase 3:** Neon Postgres on Render ✓ — persistence smoke passed 2026-06-07  
+**Last updated:** 2026-06-07
 
 ## Summary
 
@@ -20,8 +20,8 @@
 
 ## Plan verification
 
-**Last verified:** 2026-05-22 (post-deploy: CI green, Render preview live, local Docker smoke OK)  
-**Verdict:** ADR-004 v1 **done**. Phase 3 and backlog tracked in `deferred-work.md`.
+**Last verified:** 2026-06-07 (Neon Postgres live; redeploy persistence smoke passed; product v0.4.5)  
+**Verdict:** ADR-004 **complete** (Phases 1–3). Backlog tracked in `deferred-work.md`.
 
 ### ADR ↔ plan
 
@@ -57,7 +57,7 @@
 | Render `PORT` | Done | `entrypoint.sh` + `envsubst` on `nginx.conf.template` |
 | `/health`, `/docs` on preview host | Done | Regex `location` in `deploy/nginx.conf.template`; Render health check `/health` |
 | `INITIAL_ADMIN_PASSWORD` on first deploy | Required | Alembic `003` fails without env (Alembic does not load `.env`) |
-| Neon / `psycopg` | Deferred | Correct per Phase 3 |
+| Neon / `psycopg` | Complete | Postgres 18 on Neon EU; Render Frankfurt |
 
 ---
 
@@ -132,9 +132,9 @@ Browser → https://<service>.onrender.com
 
 ---
 
-## Phase 3 — Neon Postgres (persistence) — **deferred**
+## Phase 3 — Neon Postgres (persistence) — **complete**
 
-Not scheduled for v1. Code prep (`psycopg`, `DATABASE_URL` normalization) is in repo; operator steps remain in README when needed.
+Implemented 2026-06-07. Spec: `spec-adr-004-phase3-neon-postgres.md`. Product release: v0.4.5.
 
 ### Scope
 
@@ -143,11 +143,12 @@ Not scheduled for v1. Code prep (`psycopg`, `DATABASE_URL` normalization) is in 
 - Verify Alembic revisions on Postgres (especially `003_add_users_table` bootstrap).
 - Set `DATABASE_URL` on Render; remove reliance on container-local SQLite for preview.
 - Document SSL/`sslmode` if required by Neon connection string.
+- Production fail-fast guard when `ENVIRONMENT=production` and `DATABASE_URL` missing or SQLite.
 
 ### Acceptance criteria
 
-- [ ] Create note on preview; trigger manual redeploy; note still present.
-- [ ] Migration `upgrade head` succeeds against Neon on deploy.
+- [x] Create note on preview; trigger manual redeploy; note still present.
+- [x] Migration `upgrade head` succeeds against Neon on deploy.
 
 ### Out of scope unless requested
 
@@ -170,15 +171,16 @@ Tracked in `deferred-work.md` where overlapping:
 
 ---
 
-## Documentation touchpoints (v1 — done)
+## Documentation touchpoints (complete)
 
 | File | Status |
 |------|--------|
-| `README.md` | CI badge/section; preview deploy + live URL |
+| `README.md` | CI; preview deploy; Phase 3 Neon operator steps |
 | `.env.example` | Neon `DATABASE_URL` comment |
-| `_bmad-output/project-context.md` | ADR-004 + preview URL |
-| `deferred-work.md` | Phase 3 + backlog |
-| `adr-004-ci-cd-and-preview-deployment.md` | Implementation status |
+| `_bmad-output/project-context.md` | ADR-004 complete; Neon preview |
+| `deferred-work.md` | Phase 2b + backlog (Neon done) |
+| `adr-004-ci-cd-and-preview-deployment.md` | Phase 3 Complete |
+| `spec-adr-004-phase3-neon-postgres.md` | Epic done 2026-06-07 |
 
 ---
 

@@ -1,9 +1,9 @@
 # ADR-004: CI/CD and HTTPS preview deployment
 
-**Status:** Accepted — **v1 implemented** (2026-05-22); Phase 3 (Neon) deferred  
+**Status:** Accepted — **complete** (Phases 1–3; 2026-06-07)  
 **Date:** 2026-05-22  
-**Preview:** https://bmad-python-fastapi.onrender.com/  
-**Scope:** Continuous integration on GitHub Actions; manual preview deployment to Render with a single HTTPS origin. PostgreSQL (Neon) persistence is deferred. Authorization, split-origin SPA/API, and automatic deploy-on-every-push are out of scope for v1 of this ADR.  
+**Preview:** https://bmad-python-fastapi.onrender.com/ (Neon Postgres; product v0.4.5)  
+**Scope:** Continuous integration on GitHub Actions; manual preview deployment to Render with a single HTTPS origin; Neon Postgres persistence on preview. Authorization, split-origin SPA/API, and automatic deploy-on-every-push are out of scope.  
 **Discussion:** Brainstorming session 2026-05-22 (CI/CD, one URL, free tier, persistence).
 
 ## Context
@@ -49,7 +49,7 @@ The Notes API project (FastAPI + SQLite locally + React/Vite UI + JWT auth per A
 |-------------|------|----------|---------------|---------|
 | **Local** | Developer machine | SQLite (`notes.db`), `.env` | No (`http://127.0.0.1`) | Day-to-day development |
 | **CI** | GitHub Actions runners | In-memory SQLite via test overrides | N/A | Automated checks on PR/push |
-| **Preview** | Render | SQLite (Phase 2) → Neon Postgres (Phase 3) | Yes (Render-managed) | HTTPS demo link |
+| **Preview** | Render | Neon Postgres (`DATABASE_URL`) | Yes (Render-managed) | HTTPS demo link |
 
 CI is not a fourth “product” environment users visit; it is an ephemeral validation sandbox.
 
@@ -65,7 +65,7 @@ CI is not a fourth “product” environment users visit; it is an ephemeral val
 
 - Phase 1 does not remove manual local runs for “full stack” demos.
 - Render free tier: service sleeps after idle; cold start latency on first request.
-- Phase 2 without Neon: notes may not survive redeploy or multi-instance behavior.
+- Render free tier cold starts remain; Neon adds external DB dependency for preview.
 - Docker + nginx add operational artifacts to maintain.
 
 ### Follow-up (not in ADR v1)
@@ -73,7 +73,7 @@ CI is not a fourth “product” environment users visit; it is an ephemeral val
 - Playwright E2E: login → notes CRUD against live API (see `deferred-work.md`).
 - Post-deploy smoke (`GET /health`, `POST /auth/login`) in CD workflow.
 - Auto-deploy on green `main` merge.
-- Neon Phase 3: set `DATABASE_URL` on Render (`psycopg` already in `requirements.txt`).
+- CI Postgres migration smoke (Phase 2b); see `deferred-work.md`.
 - Rate limiting on public preview; custom domain on Render.
 
 ## References
@@ -88,4 +88,4 @@ CI is not a fourth “product” environment users visit; it is an ephemeral val
 |-------|--------|
 | 1 — GitHub Actions CI | **Complete** — green on `main`; `actions/checkout@v6`, `setup-python@v6`, `setup-node@v5`, Node 24 for frontend |
 | 2 — Render manual deploy (Docker + nginx) | **Complete** — https://bmad-python-fastapi.onrender.com/ |
-| 3 — Neon Postgres on preview | **Deferred** — optional follow-up; see `deferred-work.md` |
+| 3 — Neon Postgres on preview | **Complete** (2026-06-07) — `DATABASE_URL` on Render; production guard; persistence smoke passed; v0.4.5 |

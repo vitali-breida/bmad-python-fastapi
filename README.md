@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/vitali-breida/bmad-python-fastapi/actions/workflows/ci.yml/badge.svg)](https://github.com/vitali-breida/bmad-python-fastapi/actions/workflows/ci.yml)
 
-Minimal CRUD API for notes with **SQLite** persistence and **JWT authentication** (ADR-003). Built to practice FastAPI basics: routes, Pydantic validation, dependency injection, SQLAlchemy, Alembic migrations, status codes, and tests.
+Minimal CRUD API for notes with **SQLite** persistence locally (Neon Postgres on [preview](#preview-deploy-render)) and **JWT authentication** (ADR-003). Built to practice FastAPI basics: routes, Pydantic validation, dependency injection, SQLAlchemy, Alembic migrations, status codes, and tests.
 
 **Breaking change (v0.4.0):** all `/notes` endpoints require `Authorization: Bearer <access_token>`. Obtain a token via `POST /auth/login` (see `.env.example` for bootstrap `admin` password after migrations).
 
@@ -42,8 +42,8 @@ The **single product semver** lives in the root [`VERSION`](VERSION) file (plain
 
 | Where | What you see |
 |-------|----------------|
-| Web UI footer | `v0.4.1` on the login screen and Notes home (bottom of page) |
-| API | `GET /health` → `{"status":"ok","version":"0.4.1"}`; OpenAPI `info.version` matches |
+| Web UI footer | `v0.4.5` on the login screen and Notes home (bottom of page) |
+| API | `GET /health` → `{"status":"ok","version":"0.4.5"}`; OpenAPI `info.version` matches |
 | Release notes | [`CHANGELOG.md`](CHANGELOG.md); deploy policy in [`docs/releases/compatibility.md`](docs/releases/compatibility.md) |
 
 **Bump a release:** edit `VERSION`, add a section to `CHANGELOG.md`, mirror `frontend/package.json` `version`, rebuild the Docker image with build-args from `VERSION` (below).
@@ -142,6 +142,8 @@ docker run --rm -p 10000:10000 --env-file .env -v notes-sqlite:/app notes-app:lo
 
 The named volume `notes-sqlite` keeps `notes.db` across container restarts. To map a host file instead: `-v ${PWD}/notes.db:/app/notes.db` (create an empty file first or let the entrypoint create the DB on first run).
 
+Do not set `ENVIRONMENT=production` in `.env` for this local Docker run unless you also set a Postgres `DATABASE_URL` — the production guard rejects SQLite.
+
 To use another host port: `-p 8080:10000` → http://127.0.0.1:8080
 
 ## Try the API
@@ -178,7 +180,7 @@ Revision chain:
 
 **Downgrade warning:** `alembic downgrade` past revision `003_add_users_table` **drops the `users` table** and removes bootstrap accounts. Back up `notes.db` before downgrading in environments that matter.
 
-**Auth env (see `.env.example`):** `SECRET_KEY` (required for JWT; empty/whitespace = unset), `ACCESS_TOKEN_EXPIRE_MINUTES` (intended range 1–10080, default 60), `ENVIRONMENT` or `ENV` (`production` / `prod` triggers prod fail-fast for missing `SECRET_KEY`), `INITIAL_ADMIN_PASSWORD` (migration only; strip applied on upgrade).
+**Auth env (see `.env.example`):** `SECRET_KEY` (required for JWT; empty/whitespace = unset), `ACCESS_TOKEN_EXPIRE_MINUTES` (intended range 1–10080, default 60), `ENVIRONMENT` or `ENV` (`production` / `prod` triggers fail-fast for missing `SECRET_KEY` or non-Postgres `DATABASE_URL`), `INITIAL_ADMIN_PASSWORD` (migration only; strip applied on upgrade).
 
 ### Brownfield: `notes.db` from before Alembic
 
@@ -230,7 +232,7 @@ No repository secrets are required for CI.
 
 ## Preview deploy (Render)
 
-**Live preview (ADR-004 v1):** https://bmad-python-fastapi.onrender.com/
+**Live preview (ADR-004 complete, Neon Postgres, v0.4.5):** https://bmad-python-fastapi.onrender.com/
 
 Manual deploy to a single HTTPS origin. The Docker image serves the Vite build via nginx and proxies `/notes`, `/auth`, `/health`, and `/docs` to Uvicorn on the same host (same relative paths as local dev). Free tier may sleep after idle (cold start on first visit).
 
@@ -283,7 +285,7 @@ app/
   main.py          # FastAPI app
   models.py        # Pydantic API schemas
   db_models.py     # SQLAlchemy table models (NoteRow, UserRow)
-  database.py      # Engine, session, get_db
+  database.py      # Engine, session, get_db, production DATABASE_URL guard
   store.py         # Repository (notes CRUD)
   auth/            # JWT config, security, deps, user lookup
   routers/notes.py # CRUD /notes (Bearer required from v0.4.0)
@@ -310,5 +312,5 @@ tests/
 ## Next learning steps
 
 - API versioning or pagination on `GET /notes`
-- PostgreSQL swap (same patterns, different `DATABASE_URL`)
+- PostgreSQL for local dev (preview already uses Neon; same patterns, different `DATABASE_URL`)
 - Deferred frontend: optimistic Query updates, full CRUD E2E with live API (see TanStack Query plan backlog)

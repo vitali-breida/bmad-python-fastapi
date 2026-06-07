@@ -2,7 +2,7 @@
 title: 'ADR-004 Phase 3 — Neon Postgres on Preview'
 type: 'implementation'
 created: '2026-06-07'
-status: 'in-progress'
+status: 'done'
 context:
   - '{project-root}/_bmad-output/planning-artifacts/adr/adr-004-ci-cd-and-preview-deployment.md'
   - '{project-root}/_bmad-output/implementation-artifacts/plan-ci-cd-phases.md'
@@ -90,8 +90,8 @@ context:
 
 **Phase 2b — Postgres migration verify (optional; defer if blocked)**
 
-- [ ] Document one-time manual check: `DATABASE_URL=postgresql://… alembic upgrade head` on clean Neon DB
-- [ ] **Or** add CI job with `postgres:16` service + migration smoke (defer → `deferred-work.md` if skipped)
+- [x] Document one-time manual check: `DATABASE_URL=postgresql://… alembic upgrade head` on clean Neon DB — verified on Neon via Render deploy 2026-06-07
+- [ ] **Or** add CI job with `postgres:16` service + migration smoke (deferred → `deferred-work.md`)
 
 **Phase 2b acceptance (if implemented):**
 
@@ -109,10 +109,10 @@ context:
 
 ### Phase 4 — Operator: Neon + Render (manual)
 
-- [ ] Create Neon project; copy `postgresql://…` connection string (include `sslmode=require` if not in URL)
-- [ ] Render dashboard: set `DATABASE_URL`; keep `SECRET_KEY`, `INITIAL_ADMIN_PASSWORD`, `ENVIRONMENT=production`
-- [ ] Manual deploy; confirm container starts (guard + migrations succeed)
-- [ ] **Persistence smoke:** create note → manual redeploy → note still present after login
+- [x] Create Neon project; copy `postgresql://…` connection string (include `sslmode=require` if not in URL)
+- [x] Render dashboard: set `DATABASE_URL`; keep `SECRET_KEY`, `INITIAL_ADMIN_PASSWORD`, `ENVIRONMENT=production`
+- [x] Manual deploy; confirm container starts (guard + migrations succeed)
+- [x] **Persistence smoke:** create note → manual redeploy → note still present after login
 
 **Phase 4 acceptance:**
 
@@ -121,9 +121,9 @@ context:
 
 ### Phase 5 — Close traceability
 
-- [ ] `_bmad-output/planning-artifacts/adr/adr-004-ci-cd-and-preview-deployment.md` — Phase 3 row → **Complete**
-- [ ] `_bmad-output/implementation-artifacts/deferred-work.md` — remove or strike Neon Postgres deferred item; add any new deferrals (e.g. Phase 2b CI Postgres)
-- [ ] `_bmad-output/implementation-artifacts/plan-ci-cd-phases.md` — Phase 3 status → complete
+- [x] `_bmad-output/planning-artifacts/adr/adr-004-ci-cd-and-preview-deployment.md` — Phase 3 row → **Complete**
+- [x] `_bmad-output/implementation-artifacts/deferred-work.md` — remove or strike Neon Postgres deferred item; add any new deferrals (e.g. Phase 2b CI Postgres)
+- [x] `_bmad-output/implementation-artifacts/plan-ci-cd-phases.md` — Phase 3 status → complete
 
 **Phase 5 acceptance:**
 
@@ -149,7 +149,7 @@ _Epic type: backend infra guard — extends ADR-004 Phase 3; not a UX epic._
 
 | Type | Before | After | Delta | Plan met? |
 |------|--------|-------|-------|-----------|
-| pytest | 28 | 33 | +5 | [x] |
+| pytest | 28 | 35 | +7 | [x] |
 | e2e | 15 | 15 | 0 | [x] |
 
 **Coverage after:** 94% (Δ +2% vs baseline)
@@ -187,29 +187,29 @@ cd frontend && npm run test:e2e
 
 See canonical checklist: `_bmad-output/implementation-artifacts/quality-gates.md`
 
-- [ ] UX/spec scope documented (explicit in / out of scope)
-- [ ] All phase acceptance criteria marked complete in this spec
-- [ ] `bmad-code-review` complete — 0 open Patch items (Defer → `deferred-work.md`)
-- [ ] `python -m pytest --cov=app --cov-fail-under=85 --cov-report=term-missing` — pass (from project root)
-- [ ] `cd frontend && npm run lint` — pass
-- [ ] `cd frontend && npm run build` — pass
-- [ ] `cd frontend && npm run test:e2e` — pass (API on :8000)
-- [ ] Manual smoke from spec Verification section — pass (record date below)
-- [ ] `project-context.md` updated if patterns changed
-- [ ] `CHANGELOG.md` + `VERSION` bumped if user-visible release _(likely N/A — preview infra)_
-- [ ] New deferrals added to `deferred-work.md` with reason
-- [ ] Coverage policy sign-off (Rules 1–4) — see Coverage sign-off below
+- [x] UX/spec scope documented (explicit in / out of scope)
+- [x] All phase acceptance criteria marked complete in this spec
+- [x] `bmad-code-review` complete — 0 open Patch items (Defer → `deferred-work.md`)
+- [x] `python -m pytest --cov=app --cov-fail-under=85 --cov-report=term-missing` — pass (from project root)
+- [x] `cd frontend && npm run lint` — pass
+- [x] `cd frontend && npm run build` — pass
+- [x] `cd frontend && npm run test:e2e` — pass (API on :8000)
+- [x] Manual smoke from spec Verification section — pass (record date below)
+- [x] `project-context.md` updated if patterns changed
+- [x] `CHANGELOG.md` + `VERSION` bumped if user-visible release — v0.4.5
+- [x] New deferrals added to `deferred-work.md` with reason
+- [x] Coverage policy sign-off (Rules 1–4) — see Coverage sign-off below
 
-**Manual smoke date:** _YYYY-MM-DD_  
-**Reviewer / sign-off:** _  
-**Coverage after:** ___% (Δ ___% vs baseline)
+**Manual smoke date:** 2026-06-07  
+**Reviewer / sign-off:** Vitali (operator persistence smoke)  
+**Coverage after:** 94% (Δ +2% vs baseline)
 
 ## Coverage sign-off
 
-- [ ] Rule 1: CI backend job green (≥85%)
-- [ ] Rule 2: CI e2e job green (7/7 critical paths)
-- [ ] Rule 3: Test delta (actual) ≥ plan
-- [ ] Rule 4: coverage delta ≥ −2% or deferred in `deferred-work.md`
+- [x] Rule 1: CI backend job green (≥85%)
+- [x] Rule 2: CI e2e job green (7/7 critical paths)
+- [x] Rule 3: Test delta (actual) ≥ plan
+- [x] Rule 4: coverage delta ≥ −2% or deferred in `deferred-work.md`
 
 ## Suggested Review Order
 
@@ -242,8 +242,9 @@ See canonical checklist: `_bmad-output/implementation-artifacts/quality-gates.md
 
 ### Completion Notes
 
-- Phases 1–3 complete (2026-06-07). Phases 4–5 (operator Neon deploy + traceability close) remain manual.
-- `python -m pytest` — 33 passed; coverage 94% (≥85%).
+- Epic complete (2026-06-07). Neon Postgres 18 (EU) on Render Frankfurt; persistence smoke passed; product v0.4.5.
+- `python -m pytest` — 35 passed; coverage 94% (≥85%).
+- Phase 2b CI Postgres job deferred to `deferred-work.md`; migrations verified on Neon via deploy.
 
 ### File List
 
@@ -252,7 +253,13 @@ See canonical checklist: `_bmad-output/implementation-artifacts/quality-gates.md
 - `tests/test_database.py`
 - `README.md`
 - `.env.example`
+- `VERSION`
+- `CHANGELOG.md`
+- `frontend/package.json`
 - `_bmad-output/project-context.md`
+- `_bmad-output/planning-artifacts/adr/adr-004-ci-cd-and-preview-deployment.md`
+- `_bmad-output/implementation-artifacts/deferred-work.md`
+- `_bmad-output/implementation-artifacts/plan-ci-cd-phases.md`
 
 ## Spec Change Log
 
@@ -260,6 +267,7 @@ See canonical checklist: `_bmad-output/implementation-artifacts/quality-gates.md
 |------|--------|
 | 2026-06-07 | Initial draft from Party Mode + bmad-help recommendation (Winston Phase 3 discussion) |
 | 2026-06-07 | Phases 1–3 implemented: production DB guard, tests, documentation |
+| 2026-06-07 | Phases 4–5 complete: Neon+Render operator smoke, traceability closeout, v0.4.5 |
 
 ## Review Findings
 
@@ -269,7 +277,7 @@ See canonical checklist: `_bmad-output/implementation-artifacts/quality-gates.md
 
 - [x] [Review][Patch] SQLite scheme check is case-sensitive [`app/database.py:32`] — fixed: `raw_url.strip().lower().startswith("sqlite")`.
 
-- [x] [Review][Defer] Traceability docs still say Phase 3 deferred [`deferred-work.md`, `adr-004-ci-cd-and-preview-deployment.md`] — deferred, pre-existing; Phase 5 closeout not yet done per spec.
+- [x] [Review][Defer] Traceability docs still say Phase 3 deferred [`deferred-work.md`, `adr-004-ci-cd-and-preview-deployment.md`] — **resolved** Phase 5 closeout 2026-06-07.
 
 - [x] [Review][Defer] Non-Postgres URL not positively validated [`app/database.py:32`] — deferred, out of spec scope; I/O matrix only requires rejecting missing/SQLite URLs.
 
@@ -287,6 +295,6 @@ See canonical checklist: `_bmad-output/implementation-artifacts/quality-gates.md
 
 - [x] [Review][Defer] Non-Postgres URL not positively validated — deferred (unchanged from first pass; out of spec I/O matrix).
 
-- [x] [Review][Defer] Phases 4–5 operator + traceability closeout — deferred (expected; not code-scope blockers).
+- [x] [Review][Defer] Phases 4–5 operator + traceability closeout — **resolved** 2026-06-07.
 
 **Re-run verdict:** Phases 1–3 code scope **clean**. Acceptance Auditor: all Phase 1 AC + prior patches verified. 35 pytest / 94% coverage.
