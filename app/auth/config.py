@@ -15,9 +15,12 @@ def _is_production() -> bool:
 
 
 def validate_production_config() -> None:
-    """Fail at container startup if production is missing SECRET_KEY."""
+    """Fail at container startup if production is missing SECRET_KEY or DATABASE_URL."""
     if _is_production():
         get_secret_key()
+        from app.database import validate_production_database_url
+
+        validate_production_database_url()
 
 
 def get_secret_key() -> str:

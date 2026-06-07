@@ -214,7 +214,7 @@ alembic upgrade head
 python -m pytest --cov=app --cov-fail-under=85 --cov-report=term-missing
 ```
 
-Tests use an in-memory SQLite database via FastAPI dependency overrides (see `tests/conftest.py`). Migration behavior is covered in `tests/test_migrations.py`. CI enforces **≥85% line coverage** on `app/` per [ADR-010](_bmad-output/planning-artifacts/adr/adr-010-test-coverage-and-quality-policy.md) (baseline ~92%; checklist in [`quality-gates.md`](_bmad-output/implementation-artifacts/quality-gates.md)).
+Tests use an in-memory SQLite database via FastAPI dependency overrides (see `tests/conftest.py`). Migration behavior is covered in `tests/test_migrations.py`; production database guard in `tests/test_database.py`. CI enforces **≥85% line coverage** on `app/` per [ADR-010](_bmad-output/planning-artifacts/adr/adr-010-test-coverage-and-quality-policy.md) (baseline ~92%; checklist in [`quality-gates.md`](_bmad-output/implementation-artifacts/quality-gates.md)).
 
 ## Continuous integration
 
@@ -244,17 +244,27 @@ Manual deploy to a single HTTPS origin. The Docker image serves the Vite build v
    |----------|---------|
    | `SECRET_KEY` | JWT signing (required in production) |
    | `INITIAL_ADMIN_PASSWORD` | Bootstrap `admin` on first `alembic upgrade head` |
-   | `ENVIRONMENT` | `production` (container exits at startup if `SECRET_KEY` is missing) |
-   | `DATABASE_URL` | Optional Phase 2: default SQLite in container; **Phase 3:** Neon Postgres URL |
+   | `ENVIRONMENT` | `production` (container exits at startup if `SECRET_KEY` or Postgres `DATABASE_URL` is missing/invalid) |
+   | `DATABASE_URL` | **Required in production** — Neon Postgres URL (see [Phase 3](#phase-3-neon-postgres-persistence) below) |
 
 4. In the Render service settings, set **Health Check Path** to `/health` (checks API via nginx, not only the static page).
 5. Deploy manually; open the public URL and sign in as `admin`.
 
-**Phase 2 limitation:** without Neon, SQLite lives on the container filesystem — notes may be **lost on redeploy** or instance replacement.
+With `ENVIRONMENT=production`, the container **fails at startup** if `DATABASE_URL` is missing or points at SQLite — set a Neon Postgres URL before deploying (see Phase 3).
 
-**Phase 3 (persistence, deferred):** when needed — [Neon](https://neon.tech) project → `DATABASE_URL` on Render → redeploy. `psycopg` is already in `requirements.txt`.
+### Phase 3 — Neon Postgres (persistence)
 
-ADR-004 v1 is complete (CI + Render). Phase 3 and backlog: `_bmad-output/implementation-artifacts/deferred-work.md`. Plan: `_bmad-output/implementation-artifacts/plan-ci-cd-phases.md` · ADR: `_bmad-output/planning-artifacts/adr/adr-004-ci-cd-and-preview-deployment.md`.
+Use this when preview notes must survive manual redeploys. Local development stays on SQLite; only the Render preview needs Neon.
+
+1. Create a [Neon](https://neon.tech) project and copy the connection string (`postgresql://…`).
+2. Ensure the URL includes `sslmode=require` (append `?sslmode=require` if Neon omits it).
+3. In the Render dashboard, set `DATABASE_URL` to that string. Keep `SECRET_KEY`, `INITIAL_ADMIN_PASSWORD`, and `ENVIRONMENT=production`.
+4. Trigger a **manual deploy**. Startup runs `alembic upgrade head` then production validation — check Render logs for migration errors.
+5. **Persistence smoke:** sign in as `admin` → create a note with a distinctive title → manual redeploy → sign in again → note is still listed.
+
+`psycopg[binary]` is already in `requirements.txt`; no code changes are required beyond setting env vars on Render.
+
+Plan: `_bmad-output/implementation-artifacts/plan-ci-cd-phases.md` · ADR: `_bmad-output/planning-artifacts/adr/adr-004-ci-cd-and-preview-deployment.md`.
 
 ## Project layout
 
@@ -285,6 +295,7 @@ tests/
   conftest.py
   test_notes.py
   test_migrations.py
+  test_database.py
 ```
 
 ## Architecture notes

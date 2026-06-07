@@ -33,7 +33,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 | Validation | Pydantic v2 | API schemas in `app/models.py` only |
 | ORM | SQLAlchemy 2.0 sync | Declarative `Mapped` in `app/db_models.py` |
 | Migrations | Alembic 1.18.x | Readable revision ids (`001_baseline_notes` → … → `003_add_users_table`) |
-| DB | SQLite | Default `sqlite:///./notes.db`; override via `DATABASE_URL` |
+| DB | SQLite (local/CI) · Neon Postgres (preview) | Default `sqlite:///./notes.db`; preview `DATABASE_URL` → Neon; production guard rejects missing/SQLite URL when `ENVIRONMENT=production` |
 | Auth | Stateless JWT (HS256) + `pwdlib[bcrypt]` | ADR-003; `PyJWT`, `python-multipart` (login form), `python-dotenv` (loads `.env` on API import) |
 | Tests (API) | pytest 8.x + httpx | In-memory DB; override `get_db` and often `get_current_user` |
 | UI | React 19 + TypeScript 6 + Vite 8 | SPA in `frontend/` |
@@ -127,7 +127,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Brownfield **old revision ids** (`001baseline`, `002updated_at`): update `alembic_version.version_num` to readable ids before `upgrade head` (see README).
 - Revision chain: `001_baseline_notes` → `002_add_notes_updated_at` → `003_add_users_table` (revision id = filename stem).
 - Out of scope unless user asks: authz/RBAC, PostgreSQL swap (local dev), pagination, multi-worker SQLite, production UI hosting/CORS.
-- **CI/CD (ADR-004 v1 — done):** CI on `main`; preview https://bmad-python-fastapi.onrender.com/ (manual Render deploy, `Dockerfile` + `deploy/nginx.conf.template`). Phase 3 Neon deferred — see `deferred-work.md`.
+- **CI/CD (ADR-004):** CI on `main`; preview https://bmad-python-fastapi.onrender.com/ (manual Render deploy, `Dockerfile` + `deploy/nginx.conf.template`). Phase 3 Neon: set `DATABASE_URL` on Render; `validate_production_database_url()` in `app/database.py` fails fast if production uses SQLite or unset URL. Local dev stays SQLite.
 - Planning context: ADRs in `_bmad-output/planning-artifacts/adr/` (ADR-003 authn, ADR-004 CI/CD, ADR-005 TanStack Query v1, ADR-006 versioning, ADR-007 TanStack Query v2 patterns, ADR-008 routing, ADR-009 UX v2 — **implemented**; **ADR-010** test coverage policy — **implemented**); specs in `_bmad-output/implementation-artifacts/`.
 - **Quality gates (epic DoD):** Every new `spec-*.md` MUST include a `## Quality Gates` section copied from `_bmad-output/implementation-artifacts/quality-gates.md`. Mark all gates `[x]` before epic sign-off. Deferrals → `deferred-work.md`. Retro reference: `epic-9-retro-2026-06-07.md`.
 - **Coverage policy (ADR-010):** `_bmad-output/planning-artifacts/adr/adr-010-test-coverage-and-quality-policy.md` (decision); operational checklist in `quality-gates.md` § Coverage policy. Rule 1–2 enforced in CI; Rule 3–4 on epic sign-off. Every spec MUST include `Coverage baseline`, `Test delta (plan/actual)`, and `Coverage after` at close. Baseline 2026-06-07: backend 92%, pytest 28, e2e 15, critical paths 7/7.

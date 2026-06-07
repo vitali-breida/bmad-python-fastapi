@@ -28,6 +28,14 @@
 - Postgres for local dev (optional; local stays SQLite).
 - Rate limiting on public preview; custom domain on Render.
 
+## Deferred from: code review of spec-adr-004-phase3-neon-postgres.md (2026-06-07)
+
+- **Traceability docs still say Phase 3 deferred** — `deferred-work.md`, `adr-004-ci-cd-and-preview-deployment.md`, `plan-ci-cd-phases.md` not updated yet; Phase 5 operator closeout pending.
+- **Non-Postgres URL not positively validated** — spec I/O matrix only requires rejecting missing/SQLite; `mysql://` etc. not in scope for this epic.
+- **`file:` database scheme not rejected** — local dev uses `sqlite://` only; not in spec I/O matrix.
+- **`ENV=prod` alias not covered in test matrix** — minor gap; `_is_production()` predates this change.
+- **Phase 1 AC #4 (dev import unchanged) not directly asserted** — suite passes; indirect coverage sufficient for v1.
+
 ## ADR-003 edge-case follow-up (consolidated)
 
 Full hunter pass (ADR + spec): **`adr-003-follow-up-edge-cases.md`**.  
