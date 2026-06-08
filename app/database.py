@@ -9,6 +9,8 @@ from app.auth.config import _is_production
 def _normalize_database_url(url: str) -> str:
     if url.startswith("postgresql://"):
         return "postgresql+psycopg://" + url[len("postgresql://") :]
+    if url.startswith("postgres://"):
+        return "postgresql+psycopg://" + url[len("postgres://") :]
     return url
 
 
@@ -38,7 +40,13 @@ _connect_args: dict[str, object] = {}
 if DATABASE_URL.startswith("sqlite"):
     _connect_args["check_same_thread"] = False
 
-engine = create_engine(DATABASE_URL, connect_args=_connect_args)
+_engine_kwargs: dict[str, object] = {"connect_args": _connect_args}
+if DATABASE_URL.startswith("postgresql"):
+    # Neon scale-to-zero sends AdminShutdown on stale pooled connections.
+    _engine_kwargs["pool_pre_ping"] = True
+    _engine_kwargs["pool_recycle"] = 300
+
+engine = create_engine(DATABASE_URL, **_engine_kwargs)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 

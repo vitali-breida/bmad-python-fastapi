@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.6] - 2026-06-08
+
+### Fixed
+
+- Postgres connection pool: `pool_pre_ping` and `pool_recycle` on preview Neon — avoids HTTP 500 (`AdminShutdown`) after database scale-to-zero.
+
+### Changed
+
+- Accept `postgres://` in `DATABASE_URL` normalization (Neon/Railway-style URLs).
+
 ## [0.4.5] - 2026-06-07
 
 ### Added
