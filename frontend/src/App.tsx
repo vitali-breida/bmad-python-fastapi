@@ -9,6 +9,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { NoteDetailPage } from "./pages/NoteDetailPage";
 import { NotesListPage } from "./pages/NotesListPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { useSessionExpiryGuard } from "./hooks/useSessionExpiryGuard";
 import { queryClient } from "./query/client";
 import { clearSessionCaches } from "./query/session";
 
@@ -22,6 +23,7 @@ function RootRedirect() {
 
 function AppRoutes() {
   const navigate = useNavigate();
+  useSessionExpiryGuard();
 
   const resetAuthSession = useCallback(() => {
     clearSessionCaches(queryClient);

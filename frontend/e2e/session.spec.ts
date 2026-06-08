@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { E2E_ADMIN_USER, signIn } from "./helpers/auth";
+import { E2E_ADMIN_USER, setExpiredAccessToken, signIn } from "./helpers/auth";
 
 test.describe("ADR-007 session resolution", () => {
   test("login success loads dashboard", async ({ page }) => {
@@ -27,6 +27,37 @@ test.describe("ADR-007 session resolution", () => {
 
     await expect(page.getByTestId("dashboard-app")).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId("login-app")).not.toBeVisible();
+  });
+
+  test("expired token shows session-expired notice on login", async ({ page }) => {
+    await page.goto("/login");
+    await setExpiredAccessToken(page);
+    await page.goto("/dashboard");
+
+    await expect(page.getByTestId("login-app")).toBeVisible();
+    await expect(page.getByTestId("session-expired-notice")).toContainText(
+      "Your session expired",
+    );
+  });
+
+  test("expired token on note save shows session-expired notice", async ({ page }) => {
+    await signIn(page);
+    await page.locator("header").getByRole("link", { name: "Notes", exact: true }).click();
+    await expect(page.getByTestId("notes-app")).toBeVisible();
+    await setExpiredAccessToken(page);
+
+    const createPanel = page.getByTestId("create-panel");
+    if (!(await createPanel.isVisible())) {
+      await page.getByRole("button", { name: "+ New note" }).click();
+    }
+    await expect(createPanel).toBeVisible();
+    await page.getByLabel("Title").fill(`Lunch save ${Date.now()}`);
+    await page.getByRole("button", { name: "Create note" }).click();
+
+    await expect(page.getByTestId("login-app")).toBeVisible();
+    await expect(page.getByTestId("session-expired-notice")).toContainText(
+      "Your session expired",
+    );
   });
 
   test("invalid token on refresh returns to login without error banner", async ({

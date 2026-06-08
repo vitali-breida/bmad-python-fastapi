@@ -127,7 +127,7 @@ Mutations ──► onMutate (optimistic setQueryData) ──► API ──► o
 ### Logout and 401
 
 - **Logout (explicit):** clear token, remove auth + notes queries from cache, reset UI form/selection.
-- **401 (authFetch):** clear token, then `onUnauthorized` — **must** `removeQueries` on `authKeys.all` and `notesKeys.all` (same as logout), not notes-only. Queries become disabled when token is gone. No error banner for silent session expiry on background refetch (same as ADR-005 list behaviour).
+- **401 (authFetch):** clear token, then `onUnauthorized` — **must** `removeQueries` on `authKeys.all` and `notesKeys.all` (same as logout), not notes-only. Queries become disabled when token is gone. **Session expired** (client-detected `exp` or 401 with expired token): one-shot `sessionStorage` flag → `LoginForm` shows an amber **session-expired notice** (informational, not a login error). **Explicit logout** and **never-had-session** stay silent on `LoginForm`.
 
 ### Session resolution states
 
@@ -138,7 +138,7 @@ Replace `isAuthenticated` with a **derived session phase** from token presence +
 | **Unauthenticated** | No token in `sessionStorage` | `LoginForm` | `enabled: false` |
 | **Resolving** | Token exists, `useMeQuery` `isPending` | Loading shell (e.g. “Checking session…”); **not** `LoginForm` | `enabled: false` |
 | **Authenticated** | Token + `useMeQuery` `isSuccess` with data | Full Notes app | `enabled: true` |
-| **Session expired** | `GET /auth/me` returns **401** | `LoginForm`; **no** error banner | `authFetch` clears token; `onUnauthorized` removes `authKeys.all` + `notesKeys.all` |
+| **Session expired** | JWT `exp` in the past and/or `GET /auth/me` returns **401** | `LoginForm` with amber **session-expired notice** (`data-testid="session-expired-notice"`) | `authFetch` / `ProtectedRoute` clear token, set one-shot notice flag; `onUnauthorized` removes `authKeys.all` + `notesKeys.all` |
 | **Session check failed** | Token + `useMeQuery` `isError` (network, 5xx, non-401 API error) | Error shell with message + **Retry** button (`refetch()`); token **unchanged** | `enabled: false` |
 
 **Implementation notes (phase 7):**
@@ -153,7 +153,7 @@ Replace `isAuthenticated` with a **derived session phase** from token presence +
 **Smoke scenarios:**
 
 1. Refresh with valid token → Resolving → Authenticated (no login flash).
-2. Refresh with expired token → Resolving → Session expired → LoginForm (silent).
+2. Refresh with expired token → redirect `/login` → `LoginForm` with session-expired notice (or client-side expiry skip before `/auth/me`).
 3. API stopped on load with token in storage → Session check failed → Retry after API up → Authenticated.
 4. Login success → `useLoginMutation` sets token → invalidate `authKeys.me()` → Authenticated → notes load.
 

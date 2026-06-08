@@ -146,7 +146,7 @@ ADR-007 session phases remain; **rendering location** changes:
 | **Unauthenticated** | No token | `/login` (`LoginPage`) |
 | **Resolving** | Token + `useMeQuery` pending | `ProtectedRoute` fallback (full-screen “Checking session…”) |
 | **Authenticated** | Token + `useMeQuery` success | Protected pages via `AppLayout` |
-| **Session expired** | 401 on `/auth/me` | Token cleared → redirect `/login` (silent) |
+| **Session expired** | JWT `exp` in the past and/or 401 on `/auth/me` | Token cleared → redirect `/login` with session-expired notice on `LoginForm` |
 | **Session check failed** | Token + `useMeQuery` error (non-401) | Error shell with Retry (in `ProtectedRoute` or root) |
 
 `LoginPage` is **not** shown while token exists and `useMeQuery` is pending — avoid login flash on refresh (ADR-007 compliance).

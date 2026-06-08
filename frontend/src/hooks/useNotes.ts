@@ -4,7 +4,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { getAccessToken } from "../api/auth";
+import { ApiError } from "../api/errors";
 import * as notesApi from "../api/notes";
 import { notesKeys } from "../query/keys";
 import type { Note, NoteCreate, NoteUpdate } from "../types/note";
@@ -14,10 +14,6 @@ let tempIdCounter = -1;
 function nextTempId(): number {
   tempIdCounter -= 1;
   return tempIdCounter;
-}
-
-function shouldRestoreMutationCache(): boolean {
-  return getAccessToken() !== null;
 }
 
 function applyNotePatch(note: Note, payload: NoteUpdate): Note {
@@ -80,8 +76,10 @@ export function useCreateNote() {
       }
       return { previous, tempId };
     },
-    onError: (_err, _payload, context) => {
-      if (!shouldRestoreMutationCache()) return;
+    onError: (err, _payload, context) => {
+      if (err instanceof ApiError && err.status === 401) {
+        return;
+      }
       if (context?.previous) {
         queryClient.setQueryData(notesKeys.list(), context.previous);
       }
@@ -96,7 +94,10 @@ export function useCreateNote() {
       }
       queryClient.setQueryData(notesKeys.detail(created.id), created);
     },
-    onSettled: (created) => {
+    onSettled: (created, error) => {
+      if (error instanceof ApiError && error.status === 401) {
+        return;
+      }
       void queryClient.invalidateQueries({ queryKey: notesKeys.list() });
       if (created?.id) {
         void queryClient.invalidateQueries({ queryKey: notesKeys.detail(created.id) });
@@ -132,8 +133,10 @@ export function useUpdateNote() {
       }
       return { previousList, previousDetail, id };
     },
-    onError: (_err, { id }, context) => {
-      if (!shouldRestoreMutationCache()) return;
+    onError: (err, { id }, context) => {
+      if (err instanceof ApiError && err.status === 401) {
+        return;
+      }
       if (context?.previousList) {
         queryClient.setQueryData(notesKeys.list(), context.previousList);
       }
@@ -141,7 +144,10 @@ export function useUpdateNote() {
         queryClient.setQueryData(notesKeys.detail(id), context.previousDetail);
       }
     },
-    onSettled: (_data, _err, { id }) => {
+    onSettled: (_data, error, { id }) => {
+      if (error instanceof ApiError && error.status === 401) {
+        return;
+      }
       void queryClient.invalidateQueries({ queryKey: notesKeys.list() });
       void queryClient.invalidateQueries({ queryKey: notesKeys.detail(id) });
     },
@@ -167,8 +173,10 @@ export function useDeleteNote() {
       queryClient.removeQueries({ queryKey: notesKeys.detail(id) });
       return { previousList, previousDetail, id };
     },
-    onError: (_err, id, context) => {
-      if (!shouldRestoreMutationCache()) return;
+    onError: (err, id, context) => {
+      if (err instanceof ApiError && err.status === 401) {
+        return;
+      }
       if (context?.previousList) {
         queryClient.setQueryData(notesKeys.list(), context.previousList);
       }
@@ -176,7 +184,10 @@ export function useDeleteNote() {
         queryClient.setQueryData(notesKeys.detail(id), context.previousDetail);
       }
     },
-    onSettled: (_data, _err, id) => {
+    onSettled: (_data, error, id) => {
+      if (error instanceof ApiError && error.status === 401) {
+        return;
+      }
       void queryClient.invalidateQueries({ queryKey: notesKeys.list() });
       void queryClient.invalidateQueries({ queryKey: notesKeys.detail(id) });
     },

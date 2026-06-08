@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.7] - 2026-06-08
+
+### Fixed
+
+- Expired JWT session UX: client-side `exp` check, amber «session expired» notice on login, optimistic mutation rollback on 401, single-flight unauthorized handler (fewer 401 cascades).
+
+### Added
+
+- Investigation artifact: `render-cold-start-save-delay-investigation.md` (Render/Neon cold start — concluded).
+
 ## [0.4.6] - 2026-06-08
 
 ### Fixed

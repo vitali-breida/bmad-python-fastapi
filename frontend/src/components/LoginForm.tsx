@@ -10,6 +10,7 @@ type LoginFormProps = {
     { username: string; password: string }
   >;
   onLoginSuccess?: () => void;
+  sessionExpired?: boolean;
 };
 
 function loginErrorMessage(err: unknown): string {
@@ -22,7 +23,11 @@ function loginErrorMessage(err: unknown): string {
   return "Sign in failed";
 }
 
-export function LoginForm({ loginMutation, onLoginSuccess }: LoginFormProps) {
+export function LoginForm({
+  loginMutation,
+  onLoginSuccess,
+  sessionExpired = false,
+}: LoginFormProps) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +60,16 @@ export function LoginForm({ loginMutation, onLoginSuccess }: LoginFormProps) {
         </p>
 
         <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
+          {sessionExpired ? (
+            <p
+              className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+              role="alert"
+              data-testid="session-expired-notice"
+            >
+              Your session expired. Sign in again to continue.
+            </p>
+          ) : null}
+
           {error ? (
             <p
               className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"

@@ -1,5 +1,10 @@
+import { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { getAccessToken } from "../api/auth";
+import {
+  clearSessionExpiredNotice,
+  hasSessionExpiredNotice,
+} from "../api/sessionNotice";
 import { LoginForm } from "../components/LoginForm";
 import { SessionErrorShell, SessionResolvingShell } from "../components/SessionShell";
 import { useLoginMutation, useMeQuery } from "../hooks/useAuth";
@@ -8,10 +13,17 @@ import { mapApiError } from "../query/errors";
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const [sessionExpired] = useState(() => hasSessionExpiredNotice());
   const loginMutation = useLoginMutation();
-  const meQuery = useMeQuery();
-  const logout = useLogout();
   const token = getAccessToken();
+  const meQuery = useMeQuery(!!token && !sessionExpired);
+  const logout = useLogout();
+
+  useEffect(() => {
+    if (sessionExpired) {
+      clearSessionExpiredNotice();
+    }
+  }, [sessionExpired]);
 
   if (token && meQuery.isPending) {
     return <SessionResolvingShell />;
@@ -37,6 +49,7 @@ export function LoginPage() {
   return (
     <LoginForm
       loginMutation={loginMutation}
+      sessionExpired={sessionExpired}
       onLoginSuccess={() => navigate("/dashboard", { replace: true })}
     />
   );
