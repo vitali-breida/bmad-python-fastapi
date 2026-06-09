@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.8] - 2026-06-09
+
+### Added
+
+- Login cold-start UX (UI only): progressive pending hints on `LoginForm` while sign-in waits (>2 s / >8 s); ADR-007 *Login pending hints*.
+
 ## [0.4.7] - 2026-06-08
 
 ### Fixed

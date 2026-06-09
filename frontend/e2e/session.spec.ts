@@ -1,11 +1,31 @@
 import { test, expect } from "@playwright/test";
-import { E2E_ADMIN_USER, setExpiredAccessToken, signIn } from "./helpers/auth";
+import { E2E_ADMIN_PASSWORD, E2E_ADMIN_USER, setExpiredAccessToken, signIn } from "./helpers/auth";
 
 test.describe("ADR-007 session resolution", () => {
   test("login success loads dashboard", async ({ page }) => {
     await signIn(page);
     await expect(page.getByRole("heading", { name: /Hello,/ })).toBeVisible();
     await expect(page.getByRole("button", { name: "Log out" })).toBeVisible();
+  });
+
+  test("slow login shows pending hint after 2 seconds", async ({ page }) => {
+    await page.goto("/login");
+    await page.route("**/auth/login", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 2_500));
+      await route.continue();
+    });
+
+    await page.getByLabel("Username").fill(E2E_ADMIN_USER);
+    await page.getByLabel("Password").fill(E2E_ADMIN_PASSWORD);
+    await page.getByRole("button", { name: "Sign in" }).click();
+
+    const pendingHint = page.getByTestId("login-pending-hint");
+    await expect(pendingHint).not.toBeVisible({ timeout: 1_900 });
+    await expect(pendingHint).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByTestId("login-pending-hint")).toContainText(
+      "This may take a moment on first visit.",
+    );
+    await expect(page.getByTestId("dashboard-app")).toBeVisible({ timeout: 15_000 });
   });
 
   test("invalid credentials show error and stay on login", async ({ page }) => {

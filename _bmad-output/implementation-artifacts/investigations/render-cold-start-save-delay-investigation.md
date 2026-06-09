@@ -449,3 +449,14 @@ After lunch (>60 min typical), first `POST /notes` returns 401 with token still 
 
 - **Fix direction:** None required for investigation scope.
 - **Infra (optional):** Paid Render/Neon to eliminate idle wake latency.
+
+## Follow-up: 2026-06-09 — Login pending hints (v0.4.8)
+
+### New Evidence
+
+- UI-only progressive disclosure on `LoginForm` during `loginMutation.isPending` (ADR-007 section *Login pending hints*).
+- E2E: slow mocked `POST /auth/login` shows `login-pending-hint` after 2 s.
+
+### Updated Conclusion
+
+**Residual cold start delay unchanged** (ADR-004 free tier). Subjective UX improved: user sees status hints during long login wait; no pre-wake, retry, or keep-alive added.

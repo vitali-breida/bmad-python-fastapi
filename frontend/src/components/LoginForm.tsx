@@ -1,7 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { UseMutationResult } from "@tanstack/react-query";
 import { ApiError } from "../api/errors";
 import { BuildInfo } from "./BuildInfo";
+import {
+  LOGIN_PENDING_HINT_MOMENT_MS,
+  LOGIN_PENDING_HINT_WAKEUP_MS,
+  loginPendingHint,
+} from "./loginPendingHint";
 
 type LoginFormProps = {
   loginMutation: UseMutationResult<
@@ -31,10 +36,42 @@ export function LoginForm({
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [pendingElapsedMs, setPendingElapsedMs] = useState(0);
+
+  useEffect(() => {
+    if (!loginMutation.isPending) {
+      return;
+    }
+
+    const startedAt = Date.now();
+    const tick = () => setPendingElapsedMs(Date.now() - startedAt);
+
+    tick();
+    const intervalId = window.setInterval(tick, 250);
+    const momentTimeoutId = window.setTimeout(
+      tick,
+      LOGIN_PENDING_HINT_MOMENT_MS + 1,
+    );
+    const wakeupTimeoutId = window.setTimeout(
+      tick,
+      LOGIN_PENDING_HINT_WAKEUP_MS + 1,
+    );
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.clearTimeout(momentTimeoutId);
+      window.clearTimeout(wakeupTimeoutId);
+    };
+  }, [loginMutation.isPending]);
+
+  const pendingHint = loginMutation.isPending
+    ? loginPendingHint(pendingElapsedMs)
+    : null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setPendingElapsedMs(0);
     loginMutation.mutate(
       { username: username.trim(), password },
       {
@@ -119,6 +156,17 @@ export function LoginForm({
           >
             {loginMutation.isPending ? "Signing in…" : "Sign in"}
           </button>
+
+          {pendingHint ? (
+            <p
+              className="text-center text-sm text-gray-600"
+              role="status"
+              aria-live="polite"
+              data-testid="login-pending-hint"
+            >
+              {pendingHint}
+            </p>
+          ) : null}
         </form>
       </main>
 

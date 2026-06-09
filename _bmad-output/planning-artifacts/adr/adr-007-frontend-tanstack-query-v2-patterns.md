@@ -157,6 +157,32 @@ Replace `isAuthenticated` with a **derived session phase** from token presence +
 3. API stopped on load with token in storage → Session check failed → Retry after API up → Authenticated.
 4. Login success → `useLoginMutation` sets token → invalidate `authKeys.me()` → Authenticated → notes load.
 
+### Login pending hints (cold start, UI only)
+
+**Constraint:** ADR-004 — Render free tier cold start; no pre-wake, retry, keep-alive, or API changes.
+
+**Scope:** `frontend/src/components/LoginForm.tsx` only.
+
+While `loginMutation.isPending` after submit, show progressive hints by elapsed time:
+
+| Elapsed | UI |
+|---------|-----|
+| 0–2 s | Button: «Signing in…» only (unchanged) |
+| >2 s | Hint below button: «This may take a moment on first visit.» |
+| >8 s | Replace hint: «The server may be waking up — please wait.» |
+
+- Hint element: neutral gray text (not amber/red); `role="status"`, `aria-live="polite"`, `data-testid="login-pending-hint"`.
+- Clear hint when pending ends (success or error).
+- Session-expired notice (`session-expired-notice`) unchanged; hints appear only during pending submit and may coexist with it.
+- **Out of scope:** `auth.ts`, health preflight, cron, Notes «Saving…» messaging.
+
+**Smoke scenarios:**
+
+1. Mock or slow `POST /auth/login` >2 s → `login-pending-hint` visible with first message.
+2. Slow login >8 s → hint text escalates to wake-up message.
+3. Fast login (<2 s) → no hint; dashboard loads as today.
+4. Session-expired banner + pending hint can both be visible (different roles).
+
 ## Implementation phases
 
 Detailed checklist: `../implementation-artifacts/plan-tanstack-query-phases.md` **phases 6–9**.
