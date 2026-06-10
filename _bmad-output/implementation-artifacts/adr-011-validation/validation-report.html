@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Validation: ADR-011 Visible Quality Phase 1</title>
+<style>
+  :root {
+    --bg: #fafaf9; --surface: #ffffff; --border: #e7e5e4; --text: #1c1917; --muted: #78716c;
+    --verdict-strong: #16a34a; --verdict-adequate: #65a30d; --verdict-thin: #d97706; --verdict-broken: #dc2626;
+    --sev-low: #64748b; --sev-medium: #ca8a04; --sev-high: #ea580c; --sev-critical: #dc2626;
+    --grade-fair: #d97706;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; font-size: 15px; }
+  .container { max-width: 960px; margin: 0 auto; padding: 32px 24px 64px; }
+  header.report-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+  .title h1 { margin: 0; font-size: 22px; font-weight: 600; }
+  .title .subtitle { color: var(--muted); font-size: 13px; margin-top: 4px; font-family: ui-monospace, Menlo, monospace; }
+  .grade { padding: 10px 18px; border-radius: 8px; font-weight: 600; color: white; font-size: 15px; background: var(--grade-fair); }
+  .synthesis { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--muted); border-radius: 8px; padding: 18px 22px; margin-bottom: 24px; }
+  .synthesis p { margin: 0 0 10px; }
+  .synthesis p:last-child { margin-bottom: 0; }
+  .dimension-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 24px; }
+  .dim-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+  .dim-card .dim-name { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .dim-card .dim-verdict { font-size: 14px; font-weight: 600; }
+  section.dimension, section.reviewer-section { margin-bottom: 14px; }
+  section details { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  section summary { padding: 14px 20px; cursor: pointer; list-style: none; display: flex; align-items: center; gap: 12px; }
+  section summary::-webkit-details-marker { display: none; }
+  section summary h2 { margin: 0; font-size: 16px; font-weight: 600; flex: 1; }
+  .verdict-pill { font-size: 11px; padding: 3px 10px; border-radius: 999px; font-weight: 600; text-transform: uppercase; color: white; }
+  .verdict-strong { background: var(--verdict-strong); }
+  .verdict-adequate { background: var(--verdict-adequate); }
+  .verdict-thin { background: var(--verdict-thin); }
+  .dim-body { padding: 4px 20px 18px; font-size: 14.5px; }
+  .findings-list { padding: 0 20px 4px; }
+  article.finding { padding: 14px 0; border-top: 1px solid var(--border); }
+  article.finding header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+  .badge { font-size: 10.5px; padding: 3px 8px; border-radius: 4px; font-weight: 600; text-transform: uppercase; }
+  .badge-sev-high { background: rgba(234,88,12,0.14); color: var(--sev-high); }
+  .badge-sev-medium { background: rgba(202,138,4,0.14); color: var(--sev-medium); }
+  .badge-sev-low { background: rgba(100,116,139,0.12); color: var(--sev-low); }
+  .finding-title { margin: 0; font-size: 15px; font-weight: 500; flex: 1; }
+  .finding-location { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; color: var(--muted); }
+  .finding-note, .finding-fix { margin-top: 6px; font-size: 14px; }
+  .finding-fix strong { color: var(--muted); font-weight: 500; }
+  .reviewer-source { font-size: 12px; color: var(--muted); font-family: ui-monospace, Menlo, monospace; }
+  .mechanical { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; margin-top: 24px; font-size: 14px; }
+  .mechanical h3 { margin: 0 0 10px; font-size: 14px; color: var(--muted); text-transform: uppercase; }
+  .mechanical ul { margin: 0; padding-left: 20px; }
+  footer.report-footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); font-family: ui-monospace, Menlo, monospace; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header class="report-header">
+    <div class="title">
+      <h1>ADR-011 Visible Quality Phase 1 — Validation Report</h1>
+      <div class="subtitle">adr-011-visible-quality-phase1.md + spec-adr-011-visible-quality-phase1.md</div>
+    </div>
+    <div class="grade">Fair — proceed after spec hygiene</div>
+  </header>
+
+  <div class="synthesis">
+    <p>ADR-011 is decision-ready and strategically coherent: it extends ADR-008/009 without route churn, names rejected alternatives, and pairs craft with axe evidence per the Visible Quality brainstorming thesis. The spec mirrors ADR phases with testable acceptance and correct ADR-010 test delta (+1 e2e).</p>
+    <p>Adversarial review surfaced predictable implementation gaps: axe scope is narrower than "accessibility baseline" language implies, the component code map omits high-touch files (<code>NoteForm</code>, <code>DeveloperInfo</code>), and spec lifecycle metadata (<code>status: draft</code>, empty coverage baseline) blocks a clean dev handoff. <strong>Gate: implement after a short spec fix pass</strong> — not a replan.</p>
+  </div>
+
+  <div class="dimension-summary">
+    <div class="dim-card"><div class="dim-name">Decision-readiness</div><div class="dim-verdict" style="color:var(--verdict-strong)">Strong</div></div>
+    <div class="dim-card"><div class="dim-name">Substance over theater</div><div class="dim-verdict" style="color:var(--verdict-adequate)">Adequate</div></div>
+    <div class="dim-card"><div class="dim-name">Strategic coherence</div><div class="dim-verdict" style="color:var(--verdict-strong)">Strong</div></div>
+    <div class="dim-card"><div class="dim-name">Done-ness clarity</div><div class="dim-verdict" style="color:var(--verdict-adequate)">Adequate</div></div>
+    <div class="dim-card"><div class="dim-name">Scope honesty</div><div class="dim-verdict" style="color:var(--verdict-adequate)">Adequate</div></div>
+    <div class="dim-card"><div class="dim-name">Downstream usability</div><div class="dim-verdict" style="color:var(--verdict-thin)">Thin</div></div>
+    <div class="dim-card"><div class="dim-name">Shape fit</div><div class="dim-verdict" style="color:var(--verdict-strong)">Strong</div></div>
+  </div>
+
+  <section class="dimension">
+    <details>
+      <summary><h2>Done-ness clarity</h2><span class="verdict-pill verdict-adequate">Adequate</span></summary>
+      <div class="dim-body"><p>Phased Given/When/Then blocks are implementable. Coverage baseline placeholders and incomplete code map are the main gaps.</p></div>
+      <div class="findings-list">
+        <article class="finding">
+          <header><span class="badge badge-sev-high">High</span><h3 class="finding-title">Coverage baseline unfilled</h3><span class="finding-location">spec § Coverage baseline</span></header>
+          <div class="finding-note">Rule 3–4 sign-off requires before/after numbers at epic start. Placeholders block honest close.</div>
+          <div class="finding-fix"><strong>Fix:</strong> Fill now: 92% backend, pytest 28, e2e 15 (per quality-gates.md baseline).</div>
+        </article>
+        <article class="finding">
+          <header><span class="badge badge-sev-medium">Medium</span><h3 class="finding-title">Incomplete component code map</h3><span class="finding-location">spec § Code Map</span></header>
+          <div class="finding-note">NoteForm, DeveloperInfo, RecentNotesList, Breadcrumbs use indigo/gray but are not listed.</div>
+          <div class="finding-fix"><strong>Fix:</strong> Add REFACTOR entries or explicit out-of-scope rationale.</div>
+        </article>
+      </div>
+    </details>
+  </section>
+
+  <section class="dimension">
+    <details open>
+      <summary><h2>Downstream usability</h2><span class="verdict-pill verdict-thin">Thin</span></summary>
+      <div class="dim-body"><p>ADR ↔ spec links work; lifecycle metadata does not match accepted ADR state.</p></div>
+      <div class="findings-list">
+        <article class="finding">
+          <header><span class="badge badge-sev-high">High</span><h3 class="finding-title">Spec status draft vs ADR accepted</h3><span class="finding-location">spec frontmatter</span></header>
+          <div class="finding-note">ADR is Accepted; spec remains draft with frozen-after-approval block — contradictory handoff signal.</div>
+          <div class="finding-fix"><strong>Fix:</strong> Set spec status to <code>ready</code> after validation fixes.</div>
+        </article>
+      </div>
+    </details>
+  </section>
+
+  <section class="dimension">
+    <details>
+      <summary><h2>Substance over theater</h2><span class="verdict-pill verdict-adequate">Adequate</span></summary>
+      <div class="dim-body"><p>Concrete token hex and I/O matrix are earned. "Accessibility baseline" overstates axe coverage.</p></div>
+      <div class="findings-list">
+        <article class="finding">
+          <header><span class="badge badge-sev-medium">Medium</span><h3 class="finding-title">Axe scope vs baseline claim</h3><span class="finding-location">ADR § A11y verification</span></header>
+          <div class="finding-note">Only /login and /dashboard scanned; notes flows have keyboard scenarios but no axe.</div>
+          <div class="finding-fix"><strong>Fix:</strong> Narrow language or add /notes to axe spec.</div>
+        </article>
+      </div>
+    </details>
+  </section>
+
+  <section class="reviewer-section">
+    <details>
+      <summary><h2>Adversarial review</h2><span class="reviewer-source">review-adversarial-general.md</span></summary>
+      <div class="dim-body"><p>12 findings; top risks are code map holes and axe/marketing mismatch.</p></div>
+      <div class="findings-list">
+        <article class="finding">
+          <header><span class="badge badge-sev-high">High</span><h3 class="finding-title">NoteForm omitted from touch map</h3><span class="finding-location">spec § Code Map</span></header>
+          <div class="finding-note">Heaviest indigo usage; guaranteed mid-epic surprise.</div>
+          <div class="finding-fix"><strong>Fix:</strong> Add to Phase 3 code map.</div>
+        </article>
+        <article class="finding">
+          <header><span class="badge badge-sev-medium">Medium</span><h3 class="finding-title">ADR-009 token line not superseded</h3><span class="finding-location">ADR-009 § Visual system</span></header>
+          <div class="finding-note">Conflicting guidance in ADR chain.</div>
+          <div class="finding-fix"><strong>Fix:</strong> Partial supersede note in ADR-011.</div>
+        </article>
+      </div>
+    </details>
+  </section>
+
+  <div class="mechanical">
+    <h3>Mechanical notes</h3>
+    <ul>
+      <li>VERSION 0.4.8 → 0.4.9 PATCH aligns with ADR-006.</li>
+      <li>CI <code>test:e2e</code> will pick up a11y.spec.ts automatically once added.</li>
+      <li>E2e tests use data-testid, not color classes — low selector regression risk.</li>
+      <li><code>frontend/docs/</code> does not exist yet — expected.</li>
+    </ul>
+  </div>
+
+  <footer class="report-footer">
+  <span>Rubric: bmad-prd PRD Quality Rubric (adapted)</span> ·
+  <span>Generated: 2026-06-10T11:20:00+00:00</span>
+  </footer>
+</div>
+</body>
+</html>

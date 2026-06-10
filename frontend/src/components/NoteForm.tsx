@@ -14,6 +14,9 @@ type NoteFormProps = {
   onSecondary: () => void;
 };
 
+const inputClass =
+  "mt-1 w-full rounded-md border border-surface-muted bg-surface-card px-3 py-2 text-sm shadow-sm focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30";
+
 export function NoteForm({
   title,
   body,
@@ -35,7 +38,7 @@ export function NoteForm({
       }}
     >
       <div>
-        <label htmlFor="note-title" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="note-title" className="block text-sm font-medium text-text">
           Title
         </label>
         <input
@@ -43,14 +46,14 @@ export function NoteForm({
           type="text"
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
-          className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className={inputClass}
           maxLength={200}
           disabled={saving}
         />
         <FieldError message={fieldErrors.title} />
       </div>
       <div>
-        <label htmlFor="note-body" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="note-body" className="block text-sm font-medium text-text">
           Body
         </label>
         <textarea
@@ -58,7 +61,7 @@ export function NoteForm({
           value={body}
           onChange={(e) => onBodyChange(e.target.value)}
           rows={6}
-          className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className={inputClass}
           maxLength={10000}
           disabled={saving}
         />
@@ -68,7 +71,7 @@ export function NoteForm({
         <button
           type="submit"
           disabled={saving}
-          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+          className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/90 disabled:opacity-50"
         >
           {saving ? "Saving…" : isEditing ? "Save changes" : "Create note"}
         </button>
@@ -76,7 +79,7 @@ export function NoteForm({
           type="button"
           onClick={onSecondary}
           disabled={saving}
-          className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          className="rounded-md border border-surface-muted bg-surface-card px-4 py-2 text-sm font-medium text-text transition-colors hover:bg-surface-muted disabled:opacity-50"
         >
           {secondaryLabel}
         </button>

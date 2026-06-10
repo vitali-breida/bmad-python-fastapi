@@ -90,7 +90,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **Types:** Mirror backend Pydantic schemas in `types/note.ts` — `title` max 200, `body` max 10_000; trim title before create/update.
 - **Errors:** Use `ApiError` + `apiErrorFromResponse()` for FastAPI 422 `detail` arrays; map `loc` to `title`/`body` field errors.
 - **Components:** Presentational only — props in, callbacks out; no direct `fetch` in components.
-- **Styling:** Tailwind utility classes only; no leftover Vite template CSS/assets.
+- **Styling:** Tailwind utility classes only; no leftover Vite template CSS/assets. **Design tokens (ADR-011):** `@theme` in `frontend/src/index.css` — semantic colors (`surface`, `surface-card`, `surface-muted`, `accent`, `accent-foreground`, `text`, `text-muted`), `rounded-card`, `shadow-card`. Prefer `bg-surface`, `bg-accent`, `text-text-muted` over ad-hoc `gray-*` / `indigo-*` on touched files. Global `:focus-visible` ring in `@layer base`; skip link in `AppLayout` targets `#main-content`.
 - **Dev server:** `host: "127.0.0.1"`, `port: 5173`, `strictPort: true`; Playwright `baseURL` / `webServer.url` must use the same host (`127.0.0.1`, not `localhost`).
 - **Production:** Static build needs reverse proxy for `/notes` **and** `/auth` (or equivalent); no CORS on API unless explicitly added.
 - **Page roles (ADR-009):** Dashboard = **hub** (greeting, tagline, up to 5 recent notes via `sortNotesForDisplay`, single “New note” CTA → `/notes?new=1`, optional “Continue editing” from `sessionStorage` `last-note`). Notes list = **browse** (full-width list, collapsible `ExpandableCreatePanel`; expanded when empty or `?new=1`, collapsed when notes exist). Detail = **only edit surface** (`secondaryLabel="Back to notes"`). Settings = account + collapsible **Developer info** (`useHealthQuery` API version). No health block on Dashboard.
@@ -108,7 +108,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Migration tests: separate file (`test_migrations.py`); temp file DB + `alembic.command.upgrade`; assert row preservation and nullable `updated_at` after upgrade.
 - Assert `updated_at is None` after create, non-null after PUT update.
 - Run API tests: `python -m pytest --cov=app --cov-fail-under=85 --cov-report=term-missing` from project root (Coverage policy Rule 1; baseline ~92%).
-- Frontend E2E: `cd frontend && npm run test:e2e` — Playwright starts API (`scripts/e2e-api.sh`) + Vite; asserts `build-info` on `/login` and after `admin` sign-in (`dashboard-app`). CI sets `SECRET_KEY` + `INITIAL_ADMIN_PASSWORD` for Alembic seed.
+- Frontend E2E: `cd frontend && npm run test:e2e` — Playwright starts API (`scripts/e2e-api.sh`) + Vite; asserts `build-info` on `/login` and after `admin` sign-in (`dashboard-app`). CI sets `SECRET_KEY` + `INITIAL_ADMIN_PASSWORD` for Alembic seed. **A11y (ADR-011):** `npm run test:a11y` runs axe on `/login`, `/dashboard`, `/notes` (0 critical violations); included in full `test:e2e`. See `frontend/docs/accessibility.md`.
 - Do not commit `frontend/node_modules/`, `frontend/dist/`, `frontend/test-results/`, or `frontend/playwright-report/`.
 
 ### Code Quality & Style Rules
@@ -165,4 +165,4 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Review quarterly for outdated rules.
 - Remove rules that become obvious over time.
 
-Last Updated: 2026-06-07
+Last Updated: 2026-06-10

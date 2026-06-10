@@ -8,12 +8,12 @@ export function SettingsPage() {
 
   return (
     <div data-testid="settings-app">
-      <h1 className="text-2xl font-semibold text-gray-900">Settings</h1>
-      <p className="mt-2 text-sm text-gray-500">Your account</p>
+      <h1 className="text-2xl font-semibold text-text">Settings</h1>
+      <p className="mt-2 text-sm text-text-muted">Your account</p>
 
-      <div className="mt-6 rounded-lg border border-gray-200 bg-white p-6">
-        <p className="text-sm text-gray-500">Username</p>
-        <p className="mt-1 text-lg font-medium text-gray-900">
+      <div className="mt-6 rounded-card border border-surface-muted bg-surface-card p-6 shadow-card">
+        <p className="text-sm text-text-muted">Username</p>
+        <p className="mt-1 text-lg font-medium text-text">
           {meQuery.data?.username ?? "—"}
         </p>
       </div>
@@ -23,7 +23,7 @@ export function SettingsPage() {
       <button
         type="button"
         onClick={logout}
-        className="mt-6 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+        className="mt-6 rounded-md border border-surface-muted bg-surface-card px-4 py-2 text-sm font-medium text-text transition-colors hover:bg-surface-muted"
       >
         Log out
       </button>

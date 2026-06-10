@@ -102,7 +102,7 @@ function NoteDetailEditor({ noteId, note, initialToast }: NoteDetailEditorProps)
 
       <section aria-label="Note editor">
         <div className="mb-3 flex items-center justify-between gap-4">
-          <h1 className="text-2xl font-semibold text-gray-900">Edit note</h1>
+          <h1 className="text-2xl font-semibold text-text">Edit note</h1>
           <button
             type="button"
             onClick={() => setPendingDelete(true)}
@@ -112,7 +112,7 @@ function NoteDetailEditor({ noteId, note, initialToast }: NoteDetailEditorProps)
           </button>
         </div>
         {editorUpdatedAt ? (
-          <p className="mb-3 text-xs text-gray-500">Last updated {editorUpdatedAt}</p>
+          <p className="mb-3 text-xs text-text-muted">Last updated {editorUpdatedAt}</p>
         ) : null}
         <NoteForm
           title={form.title}
@@ -183,7 +183,7 @@ export function NoteDetailPage() {
         <button
           type="button"
           onClick={() => navigate("/notes")}
-          className="mt-4 text-sm text-indigo-600 hover:text-indigo-800"
+          className="mt-4 text-sm text-accent hover:text-accent/80"
         >
           Back to notes
         </button>
@@ -200,7 +200,7 @@ export function NoteDetailPage() {
       </div>
 
       {noteQuery.isPending || !noteQuery.data ? (
-        <p className="text-sm text-gray-500">Loading note…</p>
+        <p className="text-sm text-text-muted">Loading note…</p>
       ) : (
         <NoteDetailEditor
           key={noteId}

@@ -2,10 +2,10 @@ import { NavLink } from "react-router-dom";
 import { useLogout } from "../hooks/useLogout";
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
-  `rounded-md px-3 py-1.5 text-sm font-medium ${
+  `rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 ${
     isActive
-      ? "bg-indigo-100 text-indigo-700"
-      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+      ? "bg-accent/10 text-accent"
+      : "text-text-muted hover:bg-surface-muted hover:text-text"
   }`;
 
 export function AppNav() {
@@ -25,7 +25,7 @@ export function AppNav() {
       <button
         type="button"
         onClick={logout}
-        className="ml-auto rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+        className="ml-auto rounded-md border border-surface-muted bg-surface-card px-3 py-1.5 text-sm font-medium text-text transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
       >
         Log out
       </button>

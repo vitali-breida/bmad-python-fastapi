@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.9] - 2026-06-10
+
+### Added
+
+- ADR-011 Phase 1 — Visible Quality: design tokens (`@theme` in `index.css`), warm visual refresh across existing pages, skip link, focus-visible rings, axe Playwright audit (`npm run test:a11y`), `frontend/docs/accessibility.md`.
+
+### Changed
+
+- Primary accent migrated from indigo to teal semantic tokens; no route or behavior changes.
+
 ## [0.4.8] - 2026-06-09
 
 ### Added

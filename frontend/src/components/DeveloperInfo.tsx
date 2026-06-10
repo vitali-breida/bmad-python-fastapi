@@ -13,20 +13,20 @@ export function DeveloperInfo() {
       : null;
 
   return (
-    <details className="mt-6 rounded-lg border border-gray-200 bg-white p-4">
-      <summary className="cursor-pointer text-sm font-medium text-gray-900">
+    <details className="mt-6 rounded-card border border-surface-muted bg-surface-card p-4 shadow-card">
+      <summary className="cursor-pointer text-sm font-medium text-text">
         Developer info
       </summary>
-      <div className="mt-3 border-t border-gray-100 pt-3">
-        <p className="text-sm text-gray-500">API version</p>
+      <div className="mt-3 border-t border-surface-muted pt-3">
+        <p className="text-sm text-text-muted">API version</p>
         {healthQuery.isPending ? (
-          <p className="mt-1 text-sm text-gray-400">Loading…</p>
+          <p className="mt-1 text-sm text-text-muted/70">Loading…</p>
         ) : healthError ? (
           <p className="mt-1 text-sm text-red-600" role="alert">
             {healthError}
           </p>
         ) : (
-          <p className="mt-1 text-sm font-medium text-gray-900">
+          <p className="mt-1 text-sm font-medium text-text">
             {healthQuery.data?.version ?? "—"}
           </p>
         )}

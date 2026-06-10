@@ -12,8 +12,8 @@ export function RecentNotesList({ notes, onSelect, onPrefetch }: RecentNotesList
 
   return (
     <section aria-label="Recent notes" data-testid="recent-notes">
-      <h2 className="mb-3 text-lg font-medium text-gray-900">Recent notes</h2>
-      <ul className="divide-y divide-gray-200 rounded-lg border border-gray-200">
+      <h2 className="mb-3 text-lg font-medium text-text">Recent notes</h2>
+      <ul className="divide-y divide-surface-muted rounded-card border border-surface-muted bg-surface-card shadow-card">
         {notes.map((note) => (
           <NoteListItem
             key={note.id}

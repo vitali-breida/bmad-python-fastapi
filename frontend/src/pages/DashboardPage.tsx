@@ -9,6 +9,9 @@ import { getLastNote } from "../utils/lastNote";
 import { sortNotesForDisplay } from "../utils/notesSort";
 import type { Note } from "../types/note";
 
+const primaryButtonClass =
+  "rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/90";
+
 export function DashboardPage() {
   const navigate = useNavigate();
   const meQuery = useMeQuery();
@@ -40,22 +43,22 @@ export function DashboardPage() {
 
   return (
     <div data-testid="dashboard-app">
-      <h1 className="text-2xl font-semibold text-gray-900">Hello, {username}</h1>
-      <p className="mt-2 text-sm text-gray-500">Create and manage your notes</p>
+      <h1 className="text-2xl font-semibold text-text">Hello, {username}</h1>
+      <p className="mt-2 text-sm text-text-muted">Create and manage your notes</p>
 
       {notesQuery.isPending ? (
-        <p className="mt-6 text-sm text-gray-500">Loading notes…</p>
+        <p className="mt-6 text-sm text-text-muted">Loading notes…</p>
       ) : notesError ? (
         <p className="mt-6 text-sm text-red-600" role="alert">
           {notesError}
         </p>
       ) : sortedNotes.length === 0 ? (
-        <div className="mt-6 rounded-lg border border-gray-200 bg-white p-6">
-          <p className="text-sm text-gray-600">No notes yet</p>
+        <div className="mt-6 rounded-card border border-surface-muted bg-surface-card p-6 shadow-card">
+          <p className="text-sm text-text-muted">No notes yet</p>
           <button
             type="button"
             onClick={() => navigate("/notes?new=1")}
-            className="mt-4 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+            className={`mt-4 ${primaryButtonClass}`}
           >
             Create your first note
           </button>
@@ -75,7 +78,7 @@ export function DashboardPage() {
           <button
             type="button"
             onClick={() => navigate("/notes?new=1")}
-            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+            className={primaryButtonClass}
           >
             New note
           </button>
@@ -83,13 +86,13 @@ export function DashboardPage() {
       ) : null}
 
       {continueNote && continueTitle ? (
-        <p className="mt-4 text-sm text-gray-600">
+        <p className="mt-4 text-sm text-text-muted">
           Continue editing:{" "}
           <Link
             to={`/notes/${continueNote.id}`}
             onMouseEnter={() => prefetchNote(queryClient, continueNote.id)}
             onFocus={() => prefetchNote(queryClient, continueNote.id)}
-            className="font-medium text-indigo-600 hover:text-indigo-800"
+            className="font-medium text-accent hover:text-accent/80"
           >
             {continueTitle}
           </Link>

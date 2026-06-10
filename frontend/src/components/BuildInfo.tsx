@@ -4,7 +4,7 @@ export function BuildInfo() {
   return (
     <p
       data-testid="build-info"
-      className="text-center text-xs text-gray-500"
+      className="text-center text-xs text-text-muted"
     >
       v{productVersion}
     </p>

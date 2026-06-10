@@ -18,14 +18,14 @@ export function NoteList({
 }: NoteListProps) {
   if (notes.length === 0) {
     return (
-      <p className="text-sm text-gray-500" data-testid="notes-empty">
+      <p className="text-sm text-text-muted" data-testid="notes-empty">
         No notes yet. Use the button above to create your first note.
       </p>
     );
   }
 
   return (
-    <ul className="divide-y divide-gray-200 rounded-lg border border-gray-200">
+    <ul className="divide-y divide-surface-muted rounded-card border border-surface-muted bg-surface-card shadow-card">
       {notes.map((note) => (
         <NoteListItem
           key={note.id}

@@ -1,5 +1,32 @@
 # Deferred work
 
+## Deferred from: code review of spec-adr-011-visible-quality-phase1 (2026-06-10)
+
+- ConfirmDialog focus trap missing — pre-existing gap; no focus trap, initial focus, or Escape handler in `ConfirmDialog.tsx`.
+- axe scope limited to `/login`, `/dashboard`, `/notes` for v1; Detail/Settings/dialogs documented as out of scope in `accessibility.md`.
+- Serious axe violations not CI-enforced — tests assert `critical` only per spec Phase 4 AC.
+- Incomplete destructive/status token migration — `red-*` / `amber-*` remain on touched files; phased migration OK for Phase 1.
+- Toast inverted semantic tokens (`bg-text` / `text-surface-card`) — acceptable for light-only v1; revisit with dark mode.
+- Breadcrumbs lack `<ol>` / `aria-current="page"` landmark semantics.
+- Duplicated `inputClass` in `LoginForm` and `NoteForm` — extract shared primitive later.
+- Optional README one-line pointer to `frontend/docs/accessibility.md` not added.
+- Note detail delete button skipped interaction-polish pass (bare `text-red-600`).
+- Author craft gate sign-off — awaiting manual preview session before Vitali marks Phase 3 "pleasant to click" checkbox.
+
+## Visible Quality (ADR-011)
+
+**ADR:** `../planning-artifacts/adr/adr-011-visible-quality-phase1.md`  
+**Spec (Phase 1):** `spec-adr-011-visible-quality-phase1.md`  
+**Brainstorming:** `../brainstorming/brainstorming-session-2026-06-10-1200.md`
+
+**Complete (2026-06-10):** Phase 1 — visual identity + accessibility baseline (v0.4.9).
+
+**Deferred (planned next increments):**
+
+- **Phase 2 — README + security narrative** — attractive README rewrite, simple architecture diagram (non-intimidating), document JWT/auth/CORS trade-offs in README + ADR cross-links.
+- **Phase 3 — spark + performance** — one opinionated UI detail (motion/color/pattern) + Lighthouse perf budget or bundle check in CI.
+- **Later Visible Quality slices** — observability (structured logs + debug README), maintainability (contribution guide), full keyboard audit beyond axe, `eslint-plugin-jsx-a11y`, dark mode, mobile nav redesign.
+
 ## Coverage policy (ADR-010)
 
 **ADR:** `../planning-artifacts/adr/adr-010-test-coverage-and-quality-policy.md`  

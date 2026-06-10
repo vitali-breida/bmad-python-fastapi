@@ -165,11 +165,11 @@ export function NotesListPage() {
   return (
     <div data-testid="notes-app">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold text-gray-900">Notes</h1>
+        <h1 className="text-2xl font-semibold text-text">Notes</h1>
         <button
           type="button"
           onClick={toggleCreatePanel}
-          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+          className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/90"
         >
           + New note
         </button>
@@ -185,7 +185,7 @@ export function NotesListPage() {
       ) : null}
 
       {loading ? (
-        <p className="mt-6 text-sm text-gray-500">Loading notes…</p>
+        <p className="mt-6 text-sm text-text-muted">Loading notes…</p>
       ) : (
         <div className="mt-6">
           <ExpandableCreatePanel

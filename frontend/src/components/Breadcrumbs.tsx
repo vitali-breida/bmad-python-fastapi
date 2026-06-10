@@ -6,12 +6,17 @@ type BreadcrumbsProps = {
 
 export function Breadcrumbs({ noteTitle }: BreadcrumbsProps) {
   return (
-    <nav aria-label="Breadcrumb" className="text-sm text-gray-500">
-      <Link to="/notes" className="hover:text-gray-700">
+    <nav aria-label="Breadcrumb" className="text-sm text-text-muted">
+      <Link
+        to="/notes"
+        className="transition-colors hover:text-text focus-visible:rounded-sm"
+      >
         Notes
       </Link>
-      <span className="mx-2">›</span>
-      <span className="font-medium text-gray-900">{noteTitle}</span>
+      <span className="mx-2" aria-hidden="true">
+        ›
+      </span>
+      <span className="font-medium text-text">{noteTitle}</span>
     </nav>
   );
 }

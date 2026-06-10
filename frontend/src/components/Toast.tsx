@@ -17,7 +17,7 @@ export function Toast({ message, onDismiss, durationMs = 3000 }: ToastProps) {
       data-testid="toast"
       role="status"
       aria-live="polite"
-      className="fixed bottom-4 right-4 z-50 rounded-md bg-gray-900 px-4 py-3 text-sm font-medium text-white shadow-lg"
+      className="fixed bottom-4 right-4 z-50 rounded-md bg-text px-4 py-3 text-sm font-medium text-surface-card shadow-lg"
     >
       {message}
     </div>
