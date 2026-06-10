@@ -1,5 +1,12 @@
 # Deferred work
 
+## Deferred from: code review of spec-adr-012-visible-quality-phase2 (2026-06-10)
+
+- Public login rate limiting unmitigated — threat acknowledged in `docs/security.md` §2; no interim controls on preview demo URL.
+- XSS mitigation via “no dangerouslySetInnerHTML” is manual discipline — not enforced by lint/CI.
+- Windows-only Docker path (`c:\Projects\...`) in README — cross-platform polish predates ADR-012.
+- Bootstrap `INITIAL_ADMIN_PASSWORD` handling on public preview — security narrative enhancement deferred.
+
 ## Deferred from: code review of spec-adr-011-visible-quality-phase1 (2026-06-10)
 
 - ConfirmDialog focus trap missing — pre-existing gap; no focus trap, initial focus, or Escape handler in `ConfirmDialog.tsx`.
@@ -9,23 +16,27 @@
 - Toast inverted semantic tokens (`bg-text` / `text-surface-card`) — acceptable for light-only v1; revisit with dark mode.
 - Breadcrumbs lack `<ol>` / `aria-current="page"` landmark semantics.
 - Duplicated `inputClass` in `LoginForm` and `NoteForm` — extract shared primitive later.
-- Optional README one-line pointer to `frontend/docs/accessibility.md` not added.
+- ~~Optional README one-line pointer to `frontend/docs/accessibility.md` not added~~ — addressed in ADR-012 README Quality & security section.
 - Note detail delete button skipped interaction-polish pass (bare `text-red-600`).
 - Author craft gate sign-off — awaiting manual preview session before Vitali marks Phase 3 "pleasant to click" checkbox.
 
-## Visible Quality (ADR-011)
+## Visible Quality (ADR-011 / ADR-012)
 
-**ADR:** `../planning-artifacts/adr/adr-011-visible-quality-phase1.md`  
-**Spec (Phase 1):** `spec-adr-011-visible-quality-phase1.md`  
+**ADR Phase 1:** `../planning-artifacts/adr/adr-011-visible-quality-phase1.md`  
+**ADR Phase 2:** `../planning-artifacts/adr/adr-012-visible-quality-phase2.md`  
+**Specs:** `spec-adr-011-visible-quality-phase1.md`, `spec-adr-012-visible-quality-phase2.md`  
 **Brainstorming:** `../brainstorming/brainstorming-session-2026-06-10-1200.md`
 
-**Complete (2026-06-10):** Phase 1 — visual identity + accessibility baseline (v0.4.9).
+**Complete (2026-06-10):**
+
+- **Phase 1** — visual identity + accessibility baseline (v0.4.9).
+- **Phase 2** — README rewrite + `docs/architecture.md` + `docs/security.md` (v0.4.10).
 
 **Deferred (planned next increments):**
 
-- **Phase 2 — README + security narrative** — attractive README rewrite, simple architecture diagram (non-intimidating), document JWT/auth/CORS trade-offs in README + ADR cross-links.
 - **Phase 3 — spark + performance** — one opinionated UI detail (motion/color/pattern) + Lighthouse perf budget or bundle check in CI.
 - **Later Visible Quality slices** — observability (structured logs + debug README), maintainability (contribution guide), full keyboard audit beyond axe, `eslint-plugin-jsx-a11y`, dark mode, mobile nav redesign.
+- **Security headers implementation** — CSP, HSTS, baseline nginx headers (narrative in `docs/security.md`; separate infra epic).
 
 ## Coverage policy (ADR-010)
 
@@ -43,7 +54,7 @@
 **ADR:** `../planning-artifacts/adr/adr-004-ci-cd-and-preview-deployment.md`  
 **Phased plan:** `plan-ci-cd-phases.md`  
 **Spec:** `spec-adr-004-phase3-neon-postgres.md`  
-**Preview:** https://bmad-python-fastapi.onrender.com/ (Neon Postgres; v0.4.5)
+**Preview:** https://bmad-python-fastapi.onrender.com/ (Neon Postgres; v0.4.10 after next deploy)
 
 **Complete (2026-06-07):** Phases 1–3 — CI, Render manual deploy, Neon persistence + production `DATABASE_URL` guard. Persistence smoke passed.
 

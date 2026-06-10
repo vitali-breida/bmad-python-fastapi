@@ -78,6 +78,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **Bootstrap:** seed user `admin` in migration `003_add_users_table` (idempotent); no `POST /auth/register` in v1.
 - **Product version:** single semver in root **`VERSION`** (ADR-006); `app/version.py` resolves via `APP_VERSION` env or file; OpenAPI `info.version` and `GET /health` include `version`; UI footer shows `v{semver}` via build-time `VITE_APP_VERSION`. Bump only `VERSION` (+ mirror `frontend/package.json`, `CHANGELOG.md`).
 - **Out of scope (authn v1):** RBAC/403, `owner_id` on notes, refresh tokens, register endpoint — see authz follow-up ADR.
+- **Security narrative (reviewers):** human-readable trade-offs in [`docs/security.md`](../docs/security.md) — JWT, sessionStorage, same-origin, headers deferral; ADR-003 remains canonical for implementation facts.
 
 ### Frontend Rules
 
@@ -127,10 +128,10 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Brownfield **old revision ids** (`001baseline`, `002updated_at`): update `alembic_version.version_num` to readable ids before `upgrade head` (see README).
 - Revision chain: `001_baseline_notes` → `002_add_notes_updated_at` → `003_add_users_table` (revision id = filename stem).
 - Out of scope unless user asks: authz/RBAC, PostgreSQL swap (local dev), pagination, multi-worker SQLite, production UI hosting/CORS.
-- **CI/CD (ADR-004 — complete):** CI on `main`; preview https://bmad-python-fastapi.onrender.com/ (Neon Postgres, manual Render deploy, v0.4.5). `validate_production_database_url()` fails fast if production uses SQLite or unset URL. Local dev stays SQLite.
+- **CI/CD (ADR-004 — complete):** CI on `main`; preview https://bmad-python-fastapi.onrender.com/ (Neon Postgres, manual Render deploy, v0.4.10 after next deploy). `validate_production_database_url()` fails fast if production uses SQLite or unset URL. Local dev stays SQLite.
 - Planning context: ADRs in `_bmad-output/planning-artifacts/adr/` (ADR-003 authn, ADR-004 CI/CD, ADR-005 TanStack Query v1, ADR-006 versioning, ADR-007 TanStack Query v2 patterns, ADR-008 routing, ADR-009 UX v2 — **implemented**; **ADR-010** test coverage policy — **implemented**); specs in `_bmad-output/implementation-artifacts/`.
 - **Quality gates (epic DoD):** Every new `spec-*.md` MUST include a `## Quality Gates` section copied from `_bmad-output/implementation-artifacts/quality-gates.md`. Mark all gates `[x]` before epic sign-off. Deferrals → `deferred-work.md`. Retro reference: `epic-9-retro-2026-06-07.md`.
-- **Coverage policy (ADR-010):** `_bmad-output/planning-artifacts/adr/adr-010-test-coverage-and-quality-policy.md` (decision); operational checklist in `quality-gates.md` § Coverage policy. Rule 1–2 enforced in CI; Rule 3–4 on epic sign-off. Every spec MUST include `Coverage baseline`, `Test delta (plan/actual)`, and `Coverage after` at close. Baseline 2026-06-07: backend 92%, pytest 28, e2e 15, critical paths 7/7.
+- **Coverage policy (ADR-010):** `_bmad-output/planning-artifacts/adr/adr-010-test-coverage-and-quality-policy.md` (decision); operational checklist in `quality-gates.md` § Coverage policy. Rule 1–2 enforced in CI; Rule 3–4 on epic sign-off. Every spec MUST include `Coverage baseline`, `Test delta (plan/actual)`, and `Coverage after` at close. Baseline 2026-06-10: backend ~92%, pytest 35, e2e 21, critical paths 7/7.
 - **UX change order:** user-visible behavior → `bmad-create-ux-design` (full or shortened scope) → ADR → spec (with Quality Gates) → implementation → `bmad-code-review` + automation. P2/P3 backlog items **extend** ADR-008/009; they do not replace routes or page roles.
 
 ### Critical Don't-Miss Rules

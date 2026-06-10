@@ -2,39 +2,99 @@
 
 [![CI](https://github.com/vitali-breida/bmad-python-fastapi/actions/workflows/ci.yml/badge.svg)](https://github.com/vitali-breida/bmad-python-fastapi/actions/workflows/ci.yml)
 
-Minimal CRUD API for notes with **SQLite** persistence locally (Neon Postgres on [preview](#preview-deploy-render)) and **JWT authentication** (ADR-003). Built to practice FastAPI basics: routes, Pydantic validation, dependency injection, SQLAlchemy, Alembic migrations, status codes, and tests.
+A **FastAPI + React** notes app built to practice production-minded patterns — JWT auth, Alembic migrations, TanStack Query, CI with coverage gates, and ADR-driven decisions — deployed on Render's free tier as a portfolio piece, not a tutorial clone.
 
-**Breaking change (v0.4.0):** all `/notes` endpoints require `Authorization: Bearer <access_token>`. Obtain a token via `POST /auth/login` (see `.env.example` for bootstrap `admin` password after migrations).
+**Live preview (v0.4.10 after next deploy):** https://bmad-python-fastapi.onrender.com/
 
-## Prerequisites
+---
 
-- Python 3.11+
+## Table of contents
 
-## Setup
+- [What this is](#what-this-is)
+- [Architecture at a glance](#architecture-at-a-glance)
+- [Quality & security](#quality--security)
+- [Quick start](#quick-start)
+- [Product version](#product-version)
+- [Web UI (React)](#web-ui-react)
+- [Run locally with Docker](#run-locally-with-docker)
+- [Try the API](#try-the-api)
+- [Database migrations](#database-migrations)
+- [Tests](#tests)
+- [Continuous integration](#continuous-integration)
+- [Preview deploy (Render)](#preview-deploy-render)
+- [Project layout](#project-layout)
+- [Next learning steps](#next-learning-steps)
 
-```powershell
-cd c:\Projects\bmad-python-fastapi
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-alembic upgrade head
+---
+
+## What this is
+
+This repository is a **coherent learning project**, not a pile of experiments. The goal is to understand how real full-stack apps are structured and to show reviewers — in about two minutes — that architectural choices were deliberate.
+
+| Signal | What it demonstrates |
+|--------|----------------------|
+| **Stateless JWT** | Thin routers, `Depends(get_current_user)`, no session store |
+| **Same-origin deploy** | Vite proxy in dev, nginx in prod — no CORS middleware |
+| **Migrations** | Alembic revision chain with brownfield upgrade paths |
+| **CI + coverage** | pytest ≥85%, Playwright e2e, three-job GitHub Actions pipeline |
+| **ADR discipline** | Decisions documented before implementation |
+| **Visible Quality** | Design tokens + axe a11y baseline (Phase 1); README + security narrative (Phase 2) |
+
+Breaking change from v0.4.0: all `/notes` endpoints require `Authorization: Bearer <access_token>`. Obtain a token via `POST /auth/login` (bootstrap `admin` user — see `.env.example`).
+
+---
+
+## Architecture at a glance
+
+```mermaid
+flowchart LR
+  Browser["React SPA"]
+  Proxy["Vite proxy / nginx"]
+  API["FastAPI"]
+  DB["SQLite / Neon"]
+  Browser --> Proxy --> API --> DB
 ```
 
-Copy `.env.example` to `.env` and set `SECRET_KEY` before using auth endpoints. The API loads `.env` from the project root on startup (`python-dotenv`). For migrations, set `INITIAL_ADMIN_PASSWORD` (bootstrap `admin` user) — Alembic does not load `.env` automatically; export the variable or run migrations from a shell that has it.
+**Three tiers:** browser UI → reverse proxy (same origin) → API → database (SQLite locally, Neon Postgres on preview).
 
-Optional: set `DATABASE_URL` (default `sqlite:///./notes.db`).
+Full diagrams (auth sequence, CI pipeline) and text layout trees: **[`docs/architecture.md`](docs/architecture.md)**
 
-## Run the server
+Security trade-offs (JWT storage, CORS absence, headers deferral): **[`docs/security.md`](docs/security.md)**
+
+---
+
+## Quality & security
+
+Evidence a reviewer can verify without running the app:
+
+| Dimension | Artifact |
+|-----------|----------|
+| **Security narrative** | [`docs/security.md`](docs/security.md) — JWT, `sessionStorage`, same-origin, production guards, explicit header deferrals |
+| **Architecture** | [`docs/architecture.md`](docs/architecture.md) — Mermaid system + auth + CI overview |
+| **Accessibility** | [`frontend/docs/accessibility.md`](frontend/docs/accessibility.md) — axe baseline, focus rings, skip link (ADR-011) |
+| **Test coverage policy** | [ADR-010](_bmad-output/planning-artifacts/adr/adr-010-test-coverage-and-quality-policy.md) — ≥85% backend, e2e critical paths |
+| **Decision records** | [`_bmad-output/planning-artifacts/adr/`](_bmad-output/planning-artifacts/adr/) — JWT (003), deploy (004), routing (008), quality (011–012) |
+| **Release compatibility** | [`docs/releases/compatibility.md`](docs/releases/compatibility.md) |
+
+---
+
+## Quick start
+
+**Prerequisites:** Python 3.11+, Node.js (for UI), Git. Copy `.env.example` to `.env` and set `SECRET_KEY` + `INITIAL_ADMIN_PASSWORD` before auth (see [Web UI](#web-ui-react) for venv and UI steps).
 
 ```powershell
+pip install -r requirements.txt
+alembic upgrade head
 python -m uvicorn app.main:app --reload
 ```
 
-Use a **single worker** with the default SQLite file (see ADR in `_bmad-output/planning-artifacts/adr/`).
+Use a **single worker** with the default SQLite file (multi-worker Uvicorn locks SQLite).
 
-- API: http://127.0.0.1:8000
-- Interactive docs: http://127.0.0.1:8000/docs
-- Health: http://127.0.0.1:8000/health — returns `status` and product `version` (see [Product version](#product-version))
+Open http://127.0.0.1:8000/docs for the API. For the React UI, run `npm run dev` in `frontend/` (second terminal).
+
+Details below: [Web UI](#web-ui-react) · [Docker](#run-locally-with-docker) · [Migrations](#database-migrations) · [Render deploy](#preview-deploy-render)
+
+---
 
 ## Product version
 
@@ -42,8 +102,8 @@ The **single product semver** lives in the root [`VERSION`](VERSION) file (plain
 
 | Where | What you see |
 |-------|----------------|
-| Web UI footer | `v0.4.5` on the login screen and Notes home (bottom of page) |
-| API | `GET /health` → `{"status":"ok","version":"0.4.5"}`; OpenAPI `info.version` matches |
+| Web UI footer | `v0.4.10` on the login screen and Notes home (bottom of page) |
+| API | `GET /health` → `{"status":"ok","version":"0.4.10"}`; OpenAPI `info.version` matches |
 | Release notes | [`CHANGELOG.md`](CHANGELOG.md); deploy policy in [`docs/releases/compatibility.md`](docs/releases/compatibility.md) |
 
 **Bump a release:** edit `VERSION`, add a section to `CHANGELOG.md`, mirror `frontend/package.json` `version`, rebuild the Docker image with build-args from `VERSION` (below).
@@ -54,9 +114,11 @@ curl http://127.0.0.1:8000/health
 
 Local Vite dev reads root `VERSION` via `vite.config.ts` (`VITE_APP_VERSION` at build). Docker sets `APP_VERSION` on the API container and `VITE_APP_VERSION` when building the frontend stage.
 
+---
+
 ## Web UI (React)
 
-The `frontend/` app is a Vite + React + TypeScript + Tailwind multi-page SPA with **React Router** (ADR-008). In development it proxies `/notes`, `/auth`, and `/health` to the API. Sign in stores the JWT in `sessionStorage` (see ADR-003 security notes on XSS).
+The `frontend/` app is a Vite + React + TypeScript + Tailwind multi-page SPA with **React Router** (ADR-008). In development it proxies `/notes`, `/auth`, and `/health` to the API. Sign in stores the JWT in `sessionStorage` — see [`docs/security.md`](docs/security.md) for the XSS trade-off.
 
 **Routes (v1):**
 
@@ -73,11 +135,22 @@ The `frontend/` app is a Vite + React + TypeScript + Tailwind multi-page SPA wit
 
 Layout: `pages/` → `hooks/` → `api/` → `query/`. Router shell in `App.tsx`; shared chrome in `layouts/AppLayout.tsx`. ADR: `_bmad-output/planning-artifacts/adr/adr-008-frontend-routing-v1.md`.
 
-**Terminal 1 — API** (from project root, venv active):
+### Local setup (detailed)
+
+**Terminal 1 — API** (from project root):
 
 ```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+copy .env.example .env
+$env:SECRET_KEY = "change-me-local-only"
+$env:INITIAL_ADMIN_PASSWORD = "change-me-local-only"
+alembic upgrade head
 python -m uvicorn app.main:app --reload
 ```
+
+The API loads `.env` from the project root on startup (`python-dotenv`). Alembic does not load `.env` automatically — export `INITIAL_ADMIN_PASSWORD` or run migrations from a shell that has it.
 
 **Terminal 2 — UI:**
 
@@ -87,7 +160,7 @@ npm install
 npm run dev
 ```
 
-Open http://127.0.0.1:5173 — sign in lands on `/dashboard`; create notes on `/notes`, edit on `/notes/:id`.
+Open http://127.0.0.1:5173 — sign in as `admin`, land on `/dashboard`.
 
 ### Frontend checks
 
@@ -119,9 +192,11 @@ $env:INITIAL_ADMIN_PASSWORD = "e2e-ci-admin-password"
 npm run test:e2e
 ```
 
+---
+
 ## Run locally with Docker
 
-Uses the same image as [preview deploy](#preview-deploy-render): nginx serves the production Vite build and proxies `/notes`, `/auth`, `/health`, and `/docs` to Uvicorn inside the container. Good for checking **production-like** behavior; for day-to-day UI work with hot reload and Query DevTools, use [Web UI](#web-ui-react) (venv + `npm run dev`) instead.
+Uses the same image as [preview deploy](#preview-deploy-render): nginx serves the production Vite build and proxies `/notes`, `/auth`, `/health`, and `/docs` to Uvicorn inside the container. Good for checking **production-like** behavior; for day-to-day UI work with hot reload and Query DevTools, use [Quick start](#quick-start) (venv + `npm run dev`) instead.
 
 **Prerequisites:** [Docker](https://www.docker.com/) (e.g. Docker Desktop on Windows).
 
@@ -146,6 +221,8 @@ Do not set `ENVIRONMENT=production` in `.env` for this local Docker run unless y
 
 To use another host port: `-p 8080:10000` → http://127.0.0.1:8080
 
+---
+
 ## Try the API
 
 All `/notes` calls require a Bearer token (v0.4.0). Log in first, then paste `access_token` from the JSON response:
@@ -163,6 +240,8 @@ curl http://127.0.0.1:8000/notes/1 -H "Authorization: Bearer <access_token>"
 Or use **Authorize** on `/docs` (username/password → token sent on **Try it out** for `/notes`).
 
 Notes are stored in `notes.db` in the project root after migrations are applied.
+
+---
 
 ## Database migrations
 
@@ -210,6 +289,8 @@ $env:INITIAL_ADMIN_PASSWORD = "change-me-local-only"
 alembic upgrade head
 ```
 
+---
+
 ## Tests
 
 ```powershell
@@ -217,6 +298,8 @@ python -m pytest --cov=app --cov-fail-under=85 --cov-report=term-missing
 ```
 
 Tests use an in-memory SQLite database via FastAPI dependency overrides (see `tests/conftest.py`). Migration behavior is covered in `tests/test_migrations.py`; production database guard in `tests/test_database.py`. CI enforces **≥85% line coverage** on `app/` per [ADR-010](_bmad-output/planning-artifacts/adr/adr-010-test-coverage-and-quality-policy.md) (baseline ~92%; checklist in [`quality-gates.md`](_bmad-output/implementation-artifacts/quality-gates.md)).
+
+---
 
 ## Continuous integration
 
@@ -228,11 +311,13 @@ On every push and pull request to `main`, GitHub Actions runs three jobs (see [`
 | `frontend` | `npm run lint`, `npm run build` (Node 24) |
 | `e2e` | Playwright (`CI=true`; API + Vite; version footer on login and after sign-in) |
 
-No repository secrets are required for CI.
+No repository secrets are required for CI. Pipeline diagram: [`docs/architecture.md`](docs/architecture.md#ci-pipeline).
+
+---
 
 ## Preview deploy (Render)
 
-**Live preview (ADR-004 complete, Neon Postgres, v0.4.5):** https://bmad-python-fastapi.onrender.com/
+**Live preview (ADR-004 complete, Neon Postgres, v0.4.10 after next deploy):** https://bmad-python-fastapi.onrender.com/
 
 Manual deploy to a single HTTPS origin. The Docker image serves the Vite build via nginx and proxies `/notes`, `/auth`, `/health`, and `/docs` to Uvicorn on the same host (same relative paths as local dev). Free tier may sleep after idle (cold start on first visit).
 
@@ -268,6 +353,8 @@ Use this when preview notes must survive manual redeploys. Local development sta
 
 Plan: `_bmad-output/implementation-artifacts/plan-ci-cd-phases.md` · ADR: `_bmad-output/planning-artifacts/adr/adr-004-ci-cd-and-preview-deployment.md`.
 
+---
+
 ## Project layout
 
 ```
@@ -298,19 +385,17 @@ tests/
   test_notes.py
   test_migrations.py
   test_database.py
+docs/
+  architecture.md  # System + auth + CI diagrams
+  security.md      # Security trade-offs narrative
 ```
 
-## Architecture notes
-
-| Topic | Doc |
-|-------|-----|
-| JWT auth | `_bmad-output/planning-artifacts/adr/adr-003-stateless-jwt-authentication.md` |
-| CI / Render preview | `_bmad-output/planning-artifacts/adr/adr-004-ci-cd-and-preview-deployment.md` |
-| TanStack Query (frontend server state) | `_bmad-output/planning-artifacts/adr/adr-005-frontend-tanstack-query-server-state.md` |
-| Frontend routing (multi-page SPA) | `_bmad-output/planning-artifacts/adr/adr-008-frontend-routing-v1.md` |
+---
 
 ## Next learning steps
 
 - API versioning or pagination on `GET /notes`
 - PostgreSQL for local dev (preview already uses Neon; same patterns, different `DATABASE_URL`)
-- Deferred frontend: optimistic Query updates, full CRUD E2E with live API (see TanStack Query plan backlog)
+- Security headers in nginx (CSP, HSTS) — see [`docs/security.md`](docs/security.md) backlog
+- Deferred frontend: full CRUD E2E with live API (see TanStack Query plan backlog)
+- Visible Quality Phase 3 — UI spark + Lighthouse perf budget ([`deferred-work.md`](_bmad-output/implementation-artifacts/deferred-work.md))

@@ -163,7 +163,7 @@ Detailed checklist: `../../implementation-artifacts/spec-adr-011-visible-quality
 - [ ] `npm run lint`, `npm run build`, `npm run test:e2e`, `npm run test:a11y` pass
 - [ ] VERSION + CHANGELOG PATCH bump on release
 - [ ] `project-context.md` updated when shipped
-- [ ] Phases 2–3 tracked in `deferred-work.md`
+- [x] Phase 2 ADR/spec created (`adr-012-visible-quality-phase2.md`); Phase 3 tracked in `deferred-work.md`
 
 ## Implementation status
 

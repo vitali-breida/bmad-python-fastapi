@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.10] - 2026-06-10
+
+### Added
+
+- ADR-012 Phase 2 — Visible Quality: story-first README, [`docs/architecture.md`](docs/architecture.md) (Mermaid system + auth + CI diagrams), [`docs/security.md`](docs/security.md) (JWT, same-origin, sessionStorage trade-offs, headers deferral).
+
+### Changed
+
+- README reorganized for portfolio reviewers — preview link, quality evidence, architecture at a glance; operator sections (Docker, migrations, Render) retained.
+
 ## [0.4.9] - 2026-06-10
 
 ### Added
