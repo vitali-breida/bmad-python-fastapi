@@ -13,7 +13,7 @@ sections_completed:
   - workflow_rules
   - anti_patterns
 status: complete
-rule_count: 72
+rule_count: 74
 optimized_for_llm: true
 ---
 
@@ -59,6 +59,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 - **Thin routers** (`app/routers/`): HTTP status, `Depends(get_db)`, `HTTPException`; no SQL in routers.
 - **Repository** (`app/store.py`): all CRUD and `db.commit()` / `db.refresh()`; accept `Session` as first arg.
+- **Data access (ADR-014):** default **SQLAlchemy ORM** (`select()`, `db.get()`, etc.) in repository modules (`app/store.py`, `app/auth/users.py`). **Exception:** `text()` / Core / raw SQL only when ORM is awkward — **inline comment stating why** (performance or query expressiveness). Never in routers.
 - Inject DB via `get_db()` generator in `app/database.py`; never instantiate `SessionLocal()` in routers.
 - SQLite engines: always pass `connect_args={"check_same_thread": False}` when URL starts with `sqlite`.
 - Routes: `APIRouter(prefix="/notes", tags=["notes"])`; list at `GET ""` (path `/notes`); 404 detail `"Note not found"`; DELETE returns `204` with empty body.
@@ -131,7 +132,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Revision chain: `001_baseline_notes` → `002_add_notes_updated_at` → `003_add_users_table` (revision id = filename stem).
 - Out of scope unless user asks: authz/RBAC, PostgreSQL swap (local dev), pagination, multi-worker SQLite, production UI hosting/CORS.
 - **CI/CD (ADR-004 — complete):** CI on `main`; preview https://bmad-python-fastapi.onrender.com/ (Neon Postgres, manual Render deploy, v0.4.10 after next deploy). `validate_production_database_url()` fails fast if production uses SQLite or unset URL. Local dev stays SQLite.
-- Planning context: ADRs in `_bmad-output/planning-artifacts/adr/` (ADR-003 authn, ADR-004 CI/CD, ADR-005 TanStack Query v1, ADR-006 versioning, ADR-007 TanStack Query v2 patterns, ADR-008 routing, ADR-009 UX v2 — **implemented**; **ADR-010** test coverage policy — **implemented**); specs in `_bmad-output/implementation-artifacts/`.
+- Planning context: ADRs in `_bmad-output/planning-artifacts/adr/` (ADR-003 authn, ADR-004 CI/CD, ADR-005 TanStack Query v1, ADR-006 versioning, ADR-007 TanStack Query v2 patterns, ADR-008 routing, ADR-009 UX v2 — **implemented**; **ADR-010** test coverage policy — **implemented**; **ADR-014** data access ORM-first — **accepted**); specs in `_bmad-output/implementation-artifacts/`.
 - **Quality gates (epic DoD):** Every new `spec-*.md` MUST include a `## Quality Gates` section copied from `_bmad-output/implementation-artifacts/quality-gates.md`. Mark all gates `[x]` before epic sign-off. Deferrals → `deferred-work.md`. Retro reference: `epic-9-retro-2026-06-07.md`.
 - **Coverage policy (ADR-010):** `_bmad-output/planning-artifacts/adr/adr-010-test-coverage-and-quality-policy.md` (decision); operational checklist in `quality-gates.md` § Coverage policy. Rule 1–2 enforced in CI; Rule 3–4 on epic sign-off. Every spec MUST include `Coverage baseline`, `Test delta (plan/actual)`, and `Coverage after` at close. Baseline 2026-06-10: backend ~92%, pytest 35, e2e 21, critical paths 7/7. ADR-013 delta: +1 e2e file (`disclosure.spec.ts`).
 - **UX change order:** user-visible behavior → `bmad-create-ux-design` (full or shortened scope) → ADR → spec (with Quality Gates) → implementation → `bmad-code-review` + automation. P2/P3 backlog items **extend** ADR-008/009; they do not replace routes or page roles.
@@ -139,7 +140,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 ### Critical Don't-Miss Rules
 
 - **Do not** run multiple Uvicorn workers against one SQLite file (`database is locked`).
-- **Do not** put business logic or raw SQL in routers; **do not** expose `NoteRow` or `hashed_password` in API responses.
+- **Do not** put business logic or raw SQL in routers; **do not** use raw SQL in repositories without an ADR-014 **why** comment; **do not** expose `NoteRow` or `hashed_password` in API responses.
 - **Do not** put user lookup or password hashing in `store.py`; **do not** skip `python-multipart` when using `OAuth2PasswordRequestForm`.
 - **Do not** add `updated_at` on create unless product explicitly requires it (nullable, no backfill per ADR-002).
 - **Do not** use async SQLAlchemy/session without a project-wide migration to async endpoints and tests.
@@ -168,4 +169,4 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Review quarterly for outdated rules.
 - Remove rules that become obvious over time.
 
-Last Updated: 2026-06-10
+Last Updated: 2026-06-11
