@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import type { FieldErrors } from "../api/errors";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { NoteForm } from "../components/NoteForm";
+import { SidePanelContent, SidePanelToggle } from "../components/SidePanel";
 import { Toast } from "../components/Toast";
 import { useDeleteNote, useNoteQuery, useUpdateNote } from "../hooks/useNotes";
 import { applyMappedError, mapApiError } from "../query/errors";
@@ -26,12 +27,15 @@ type NoteDetailEditorProps = {
 
 function NoteDetailEditor({ noteId, note, initialToast }: NoteDetailEditorProps) {
   const navigate = useNavigate();
+  const panelId = useId();
+  const [panelOpen, setPanelOpen] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [form, setForm] = useState({ title: note.title, body: note.body });
   const [pendingDelete, setPendingDelete] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(initialToast);
   const dismissToast = useCallback(() => setToastMessage(null), []);
+  const closePanel = useCallback(() => setPanelOpen(false), []);
 
   const updateNote = useUpdateNote();
   const deleteNote = useDeleteNote();
@@ -100,33 +104,45 @@ function NoteDetailEditor({ noteId, note, initialToast }: NoteDetailEditorProps)
         </p>
       ) : null}
 
-      <section aria-label="Note editor">
-        <div className="mb-3 flex items-center justify-between gap-4">
-          <h1 className="text-2xl font-semibold text-text">Edit note</h1>
+      <div className="flex flex-col lg:flex-row lg:items-start lg:gap-6">
+        <section aria-label="Note editor" className="min-w-0 flex-1">
+          <div className="mb-3 flex items-center justify-between gap-4">
+            <h1 className="text-2xl font-semibold text-text">Edit note</h1>
+            <SidePanelToggle
+              open={panelOpen}
+              onToggle={() => setPanelOpen((value) => !value)}
+              panelId={panelId}
+            />
+          </div>
+          <NoteForm
+            title={form.title}
+            body={form.body}
+            fieldErrors={fieldErrors}
+            isEditing
+            saving={saving}
+            onTitleChange={(title) => setForm((f) => ({ ...f, title }))}
+            onBodyChange={(body) => setForm((f) => ({ ...f, body }))}
+            onSubmit={handleSubmit}
+            secondaryLabel="Back to notes"
+            onSecondary={() => navigate("/notes")}
+          />
+        </section>
+
+        <SidePanelContent open={panelOpen} onClose={closePanel} panelId={panelId}>
+          <p className="text-sm text-text-muted">
+            {editorUpdatedAt
+              ? `Last updated ${editorUpdatedAt}`
+              : "Not updated yet"}
+          </p>
           <button
             type="button"
             onClick={() => setPendingDelete(true)}
-            className="text-sm text-red-600 hover:text-red-800"
+            className="mt-4 text-sm text-red-600 hover:text-red-800"
           >
             Delete note
           </button>
-        </div>
-        {editorUpdatedAt ? (
-          <p className="mb-3 text-xs text-text-muted">Last updated {editorUpdatedAt}</p>
-        ) : null}
-        <NoteForm
-          title={form.title}
-          body={form.body}
-          fieldErrors={fieldErrors}
-          isEditing
-          saving={saving}
-          onTitleChange={(title) => setForm((f) => ({ ...f, title }))}
-          onBodyChange={(body) => setForm((f) => ({ ...f, body }))}
-          onSubmit={handleSubmit}
-          secondaryLabel="Back to notes"
-          onSecondary={() => navigate("/notes")}
-        />
-      </section>
+        </SidePanelContent>
+      </div>
 
       {pendingDelete ? (
         <ConfirmDialog

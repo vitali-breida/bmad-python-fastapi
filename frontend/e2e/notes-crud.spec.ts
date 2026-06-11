@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { signIn } from "./helpers/auth";
+import { waitForNotesListLoaded } from "./helpers/notes";
 
 function uniqueTitle(prefix: string): string {
   return `${prefix} ${Date.now()}`;
@@ -18,7 +19,7 @@ async function goToNotes(page: Page): Promise<void> {
     .locator("header")
     .getByRole("link", { name: "Notes", exact: true })
     .click();
-  await expect(page.getByTestId("notes-app")).toBeVisible();
+  await waitForNotesListLoaded(page);
 }
 
 async function openCreatePanel(page: Page): Promise<void> {
@@ -63,11 +64,15 @@ test.describe("ADR-007 notes CRUD", () => {
     await expect(page.getByTestId("toast")).toContainText("Saved");
     await expect(page.getByLabel("Title")).toHaveValue(updatedTitle);
     await expect(page.getByLabel("Body")).toHaveValue("Updated body");
-    await expect(page.getByRole("region", { name: "Note editor" })).toContainText(
-      /Last updated/i,
-    );
 
-    await page.getByRole("button", { name: "Delete note" }).click();
+    const panelToggle = page.getByTestId("note-detail-panel-toggle");
+    await panelToggle.click();
+    await expect(page.getByTestId("note-detail-panel")).toContainText(/Last updated/i);
+
+    await page
+      .getByTestId("note-detail-panel")
+      .getByRole("button", { name: "Delete note" })
+      .click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await page.getByRole("dialog").getByRole("button", { name: "Delete" }).click();
 

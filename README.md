@@ -72,6 +72,7 @@ Evidence a reviewer can verify without running the app:
 | **Security narrative** | [`docs/security.md`](docs/security.md) — JWT, `sessionStorage`, same-origin, production guards, explicit header deferrals |
 | **Architecture** | [`docs/architecture.md`](docs/architecture.md) — Mermaid system + auth + CI overview |
 | **Accessibility** | [`frontend/docs/accessibility.md`](frontend/docs/accessibility.md) — axe baseline, focus rings, skip link (ADR-011) |
+| **Bundle budget** | [`frontend/docs/performance.md`](frontend/docs/performance.md) — gzip JS limit enforced in CI after `vite build` (ADR-013) |
 | **Test coverage policy** | [ADR-010](_bmad-output/planning-artifacts/adr/adr-010-test-coverage-and-quality-policy.md) — ≥85% backend, e2e critical paths |
 | **Decision records** | [`_bmad-output/planning-artifacts/adr/`](_bmad-output/planning-artifacts/adr/) — JWT (003), deploy (004), routing (008), quality (011–012) |
 | **Release compatibility** | [`docs/releases/compatibility.md`](docs/releases/compatibility.md) |

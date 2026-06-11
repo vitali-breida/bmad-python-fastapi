@@ -1,15 +1,19 @@
 {
   "name": "frontend",
   "private": true,
-  "version": "0.4.10",
+  "version": "0.4.11",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "check:budget": "node scripts/check-bundle-budget.mjs",
     "test:e2e": "playwright test",
     "test:a11y": "playwright test e2e/a11y.spec.ts"
+  },
+  "budgets": {
+    "totalJsGzipKb": 98
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.0",

@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { signIn } from "./helpers/auth";
+import { waitForNotesListLoaded } from "./helpers/notes";
 
 function criticalViolations(
   violations: Awaited<ReturnType<AxeBuilder["analyze"]>>["violations"],
@@ -26,8 +27,11 @@ test.describe("accessibility", () => {
 
   test("notes list has no critical axe violations", async ({ page }) => {
     await signIn(page);
-    await page.goto("/notes");
-    await expect(page.getByText("Loading notes…")).toHaveCount(0);
+    await page
+      .locator("header")
+      .getByRole("link", { name: "Notes", exact: true })
+      .click();
+    await waitForNotesListLoaded(page);
     const results = await new AxeBuilder({ page }).analyze();
     expect(criticalViolations(results.violations)).toHaveLength(0);
   });

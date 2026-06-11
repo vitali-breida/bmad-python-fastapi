@@ -1,5 +1,10 @@
 # Deferred work
 
+## Deferred from: code review of spec-adr-013-visible-quality-phase3 (2026-06-10)
+
+- Mobile sheet focus trap and body scroll lock not implemented on `SidePanel` narrow viewport — overlaps pre-existing `ConfirmDialog` focus-trap backlog; ADR-013 spec allows keyboard-trap deferral.
+- Note detail form state not resynced when `useNoteQuery` refetches in background — pre-existing before side-panel refactor.
+
 ## Deferred from: code review of spec-adr-012-visible-quality-phase2 (2026-06-10)
 
 - Public login rate limiting unmitigated — threat acknowledged in `docs/security.md` §2; no interim controls on preview demo URL.
@@ -24,7 +29,8 @@
 
 **ADR Phase 1:** `../planning-artifacts/adr/adr-011-visible-quality-phase1.md`  
 **ADR Phase 2:** `../planning-artifacts/adr/adr-012-visible-quality-phase2.md`  
-**Specs:** `spec-adr-011-visible-quality-phase1.md`, `spec-adr-012-visible-quality-phase2.md`  
+**ADR Phase 3:** `../planning-artifacts/adr/adr-013-visible-quality-phase3.md` (accepted 2026-06-10)  
+**Specs:** `spec-adr-011-visible-quality-phase1.md`, `spec-adr-012-visible-quality-phase2.md`, `spec-adr-013-visible-quality-phase3.md` (implemented)  
 **Brainstorming:** `../brainstorming/brainstorming-session-2026-06-10-1200.md`
 
 **Complete (2026-06-10):**
@@ -32,9 +38,13 @@
 - **Phase 1** — visual identity + accessibility baseline (v0.4.9).
 - **Phase 2** — README rewrite + `docs/architecture.md` + `docs/security.md` (v0.4.10).
 
-**Deferred (planned next increments):**
+**Complete (2026-06-10):**
 
-- **Phase 3 — spark + performance** — one opinionated UI detail (motion/color/pattern) + Lighthouse perf budget or bundle check in CI.
+- **Phase 3** — anchor-and-layer structure (1A Dashboard, 2B detail side panel) + gzip bundle budget in CI (v0.4.11).
+
+**Deferred (post–Phase 3):**
+
+- **Card-stack hover physics** on `NoteListItem` — motion layer; out of ADR-013 scope.
 - **Later Visible Quality slices** — observability (structured logs + debug README), maintainability (contribution guide), full keyboard audit beyond axe, `eslint-plugin-jsx-a11y`, dark mode, mobile nav redesign.
 - **Security headers implementation** — CSP, HSTS, baseline nginx headers (narrative in `docs/security.md`; separate infra epic).
 

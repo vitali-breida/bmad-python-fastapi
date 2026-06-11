@@ -1,3 +1,4 @@
+import { CollapsibleSection } from "./CollapsibleSection";
 import { useMeQuery } from "../hooks/useAuth";
 import { useHealthQuery } from "../hooks/useHealth";
 import { mapApiError } from "../query/errors";
@@ -13,24 +14,23 @@ export function DeveloperInfo() {
       : null;
 
   return (
-    <details className="mt-6 rounded-card border border-surface-muted bg-surface-card p-4 shadow-card">
-      <summary className="cursor-pointer text-sm font-medium text-text">
-        Developer info
-      </summary>
-      <div className="mt-3 border-t border-surface-muted pt-3">
-        <p className="text-sm text-text-muted">API version</p>
-        {healthQuery.isPending ? (
-          <p className="mt-1 text-sm text-text-muted/70">Loading…</p>
-        ) : healthError ? (
-          <p className="mt-1 text-sm text-red-600" role="alert">
-            {healthError}
-          </p>
-        ) : (
-          <p className="mt-1 text-sm font-medium text-text">
-            {healthQuery.data?.version ?? "—"}
-          </p>
-        )}
-      </div>
-    </details>
+    <CollapsibleSection
+      title="Developer info"
+      className="mt-6 border-dashed bg-surface-muted/50"
+      contentClassName="pt-3"
+    >
+      <p className="text-sm text-text-muted">API version</p>
+      {healthQuery.isPending ? (
+        <p className="mt-1 text-sm text-text-muted/70">Loading…</p>
+      ) : healthError ? (
+        <p className="mt-1 text-sm text-red-600" role="alert">
+          {healthError}
+        </p>
+      ) : (
+        <p className="mt-1 text-sm font-medium text-text">
+          {healthQuery.data?.version ?? "—"}
+        </p>
+      )}
+    </CollapsibleSection>
   );
 }

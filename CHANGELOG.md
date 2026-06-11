@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.11] - 2026-06-10
+
+### Added
+
+- ADR-013 Phase 3 — Visible Quality: anchor-and-layer screen structure (Dashboard CTA above recents, detail side panel for metadata/delete), `CollapsibleSection` / `SidePanel` primitives, gzip bundle budget gate (`npm run check:budget`) in CI, [`frontend/docs/performance.md`](frontend/docs/performance.md), `e2e/disclosure.spec.ts`.
+
+### Changed
+
+- Dashboard primary **New note** CTA moved above recent notes list (1A); note detail editor stays in main column with metadata and delete in a toggle side panel (2B); notes list loading uses row skeleton placeholders.
+
 ## [0.4.10] - 2026-06-10
 
 ### Added

@@ -30,7 +30,7 @@ export function ExpandableCreatePanel({
     <section
       aria-label="Create note"
       data-testid="create-panel"
-      className="mb-6 rounded-card border border-surface-muted bg-surface-card p-4 shadow-card"
+      className="mb-6 rounded-card border border-surface-muted bg-surface-card p-4 shadow-card motion-safe:transition-opacity motion-safe:duration-200 motion-reduce:transition-none"
     >
       <h2 className="mb-3 text-lg font-medium text-text">New note</h2>
       <NoteForm

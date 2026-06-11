@@ -64,26 +64,26 @@ export function DashboardPage() {
           </button>
         </div>
       ) : (
-        <div className="mt-6">
-          <RecentNotesList
-            notes={recentNotes}
-            onSelect={selectNote}
-            onPrefetch={(id) => prefetchNote(queryClient, id)}
-          />
-        </div>
-      )}
+        <>
+          <div className="mt-6">
+            <button
+              type="button"
+              onClick={() => navigate("/notes?new=1")}
+              className={primaryButtonClass}
+            >
+              New note
+            </button>
+          </div>
 
-      {sortedNotes.length > 0 ? (
-        <div className="mt-6">
-          <button
-            type="button"
-            onClick={() => navigate("/notes?new=1")}
-            className={primaryButtonClass}
-          >
-            New note
-          </button>
-        </div>
-      ) : null}
+          <div className="mt-6">
+            <RecentNotesList
+              notes={recentNotes}
+              onSelect={selectNote}
+              onPrefetch={(id) => prefetchNote(queryClient, id)}
+            />
+          </div>
+        </>
+      )}
 
       {continueNote && continueTitle ? (
         <p className="mt-4 text-sm text-text-muted">

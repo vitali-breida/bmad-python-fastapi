@@ -185,7 +185,16 @@ export function NotesListPage() {
       ) : null}
 
       {loading ? (
-        <p className="mt-6 text-sm text-text-muted">Loading notes…</p>
+        <div className="mt-6" aria-busy="true" aria-label="Loading notes">
+          <ul className="space-y-2" aria-hidden="true">
+            {Array.from({ length: 4 }, (_, index) => (
+              <li
+                key={index}
+                className="h-14 rounded-card border border-surface-muted bg-surface-muted/60"
+              />
+            ))}
+          </ul>
+        </div>
       ) : (
         <div className="mt-6">
           <ExpandableCreatePanel
